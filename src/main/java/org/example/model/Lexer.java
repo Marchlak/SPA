@@ -16,19 +16,19 @@ public class Lexer {
     public List<Token> convertToTokens() {
         List<Token> tokens = new ArrayList<>();
 
-        for (int i = 0; i < length; i++){
+        while (pos < length) {
             char currentChar = input.charAt(pos);
 
             if (Character.isWhitespace(currentChar)) {
                 pos++;
             } else if (Character.isLetter(currentChar)) {
                 StringBuilder word = new StringBuilder();
-                
-                while (pos < length && Character.isLetterOrDigit(currentChar)) {
-                    word.append(currentChar);
+
+                while (pos < length && Character.isLetterOrDigit(input.charAt(pos))) {
+                    word.append(input.charAt(pos));
                     pos++;
                 }
-                
+
                 if (word.toString().equals("procedure")) {
                     tokens.add(new Token(TokenType.PROCEDURE, word.toString()));
                 } else if (word.toString().equals("while")) {
@@ -39,8 +39,8 @@ public class Lexer {
             } else if (Character.isDigit(currentChar)){
                 StringBuilder number = new StringBuilder();
 
-                while (pos < length && Character.isDigit(currentChar)) {
-                    number.append(currentChar);
+                while (pos < length && Character.isDigit(input.charAt(pos))) {
+                    number.append(input.charAt(pos));
                     pos++;
                 }
 
