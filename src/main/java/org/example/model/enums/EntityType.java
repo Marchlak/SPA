@@ -1,4 +1,4 @@
-package org.example.model.ast;
+package org.example.model.enums;
 
 public enum EntityType {
     PROGRAM,

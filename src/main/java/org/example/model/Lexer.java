@@ -1,5 +1,7 @@
 package org.example.model;
 
+import org.example.model.enums.TokenType;
+
 import java.util.ArrayList;
 import java.util.List;
 

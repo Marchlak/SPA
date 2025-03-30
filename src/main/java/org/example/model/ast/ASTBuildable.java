@@ -1,5 +1,7 @@
 package org.example.model.ast;
 
+import org.example.model.enums.EntityType;
+
 public interface ASTBuildable {
     TNode CreateTNode(EntityType entityType);
     void SetRoot(TNode astNode);

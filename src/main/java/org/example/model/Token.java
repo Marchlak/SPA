@@ -1,5 +1,7 @@
 package org.example.model;
 
+import org.example.model.enums.TokenType;
+
 public class Token {
     private TokenType type;
     private String value;
