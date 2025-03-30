@@ -59,12 +59,18 @@ public class Parser {
 
     }
 
-    public void parseWhile() {
+    public TNode parseWhile() {
+        TNode whileNode = new TNode(EntityType.WHILE);
         checkToken(TokenType.WHILE);
-        checkToken(TokenType.NAME);
+        Token varToken = checkToken(TokenType.NAME);
+        TNode condNode = new TNode(EntityType.VARIABLE);
+        condNode.setAttr(varToken.getValue());
+        whileNode.setFirstChild(condNode);
         checkToken(TokenType.LBRACE);
-        //parseStmtList();
+        TNode stmtList = parseStmtList();
+        condNode.setRightSibling(stmtList);
         checkToken(TokenType.RBRACE);
+        return whileNode;
     }
 
 
