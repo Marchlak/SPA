@@ -39,7 +39,21 @@ public class Parser {
     }
 
     public void parseStmt() {
+        Token token = getToken();
 
+        switch (token.getType()) {
+            case PROCEDURE:
+                parseProcedure();
+                break;
+            case WHILE:
+                parseWhile();
+                break;
+            case NAME:
+                parseAssign();
+                break;
+            default:
+                throw new RuntimeException("Unexpected token in statement: " + token);
+        }
     }
 
     public void parseWhile() {
