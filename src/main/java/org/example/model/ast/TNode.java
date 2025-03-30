@@ -1,48 +1,69 @@
 package org.example.model.ast;
 
-import java.util.ArrayList;
-import java.util.List;
+import org.example.model.enums.EntityType;
 
 public class TNode {
-    private final EntityType entityType;
-    String attribute;
-    TNode parent;
-    TNode rightSibling;
-    final List<TNode> children = new ArrayList<>();
+    private final EntityType type;
 
-    public TNode(EntityType entityType) {
-        this.entityType = entityType;
+    private String attr;
+    private TNode firstChild;
+    private TNode rightSibling;
+    private TNode parent;
+
+    public TNode(EntityType type) {
+        this.type = type;
     }
 
-    public TNode GetParent() {
-        return parent;
+    public EntityType getType() {
+        return type;
     }
 
-    public void SetParent(TNode parent) {
-        this.parent = parent;
+    public String getAttr() {
+        return attr;
     }
 
-    public TNode GetRightSibling() {
+    public void setAttr(String attr) {
+        this.attr = attr;
+    }
+
+    public TNode getFirstChild() {
+        return firstChild;
+    }
+
+    public void setFirstChild(TNode child) {
+        this.firstChild = child;
+        if (child != null) {
+            child.setParent(this);
+        }
+    }
+
+    public TNode getRightSibling() {
         return rightSibling;
     }
 
-    public void SetRightSibling(TNode rightSibling) {
-        this.rightSibling = rightSibling;
+    public void setRightSibling(TNode sibling) {
+        this.rightSibling = sibling;
+        if (sibling != null) {
+            sibling.setParent(this.parent);
+        }
     }
 
-    public void SetNthChild(int nth, TNode child) {
-        children.set(nth, child);
+    public TNode getParent() {
+        return parent;
     }
 
-    public int GetChildrenIndex(TNode child) {
-        return children.indexOf(child);
+    public void setParent(TNode parent) {
+        this.parent = parent;
     }
 
-    public void SetAttribute(String attribute) {
-        this.attribute = attribute;
-    }
-
-    public String GetAttribute() {
-        return attribute;
+    public String toString(int indent) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("  ".repeat(Math.max(0, indent)));
+        sb.append(type);
+        if (attr != null) sb.append(":").append(attr);
+        sb.append("\n");
+        if (firstChild != null) sb.append(firstChild.toString(indent + 1));
+        if (rightSibling != null) sb.append(rightSibling.toString(indent));
+        return sb.toString();
     }
 }
