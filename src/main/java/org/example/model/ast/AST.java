@@ -3,8 +3,8 @@ package org.example.model.ast;
 public class AST implements ASTBuildable, ASTQueryable {
     TNode root;
     @Override
-    public TNode CreateTNode(EntityType et) {
-        TNode newNode = new TNode(et);
+    public TNode CreateTNode(EntityType entityType) {
+        TNode newNode = new TNode(entityType);
         return newNode;
     }
 
