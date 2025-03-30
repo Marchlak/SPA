@@ -43,8 +43,13 @@ public class Parser {
     }
 
     public void parseWhile() {
-
+        checkToken(TokenType.WHILE);
+        checkToken(TokenType.NAME);
+        checkToken(TokenType.LBRACE);
+        //parseStmtList();
+        checkToken(TokenType.RBRACE);
     }
+
 
     public void parseAssign() {
 
