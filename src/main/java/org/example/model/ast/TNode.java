@@ -3,11 +3,16 @@ package org.example.model.ast;
 import java.util.ArrayList;
 import java.util.List;
 
-public abstract class TNode {
-    Attribute attribute;
+public class TNode {
+    private final EntityType entityType;
+    String attribute;
     TNode parent;
     TNode rightSibling;
     final List<TNode> children = new ArrayList<>();
+
+    public TNode(EntityType entityType) {
+        this.entityType = entityType;
+    }
 
     public TNode GetParent() {
         return parent;
@@ -33,11 +38,11 @@ public abstract class TNode {
         return children.indexOf(child);
     }
 
-    public void SetAttribute(Attribute attribute) {
+    public void SetAttribute(String attribute) {
         this.attribute = attribute;
     }
 
-    public Attribute GetAttribute() {
+    public String GetAttribute() {
         return attribute;
     }
 }

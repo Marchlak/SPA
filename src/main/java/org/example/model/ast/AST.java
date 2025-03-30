@@ -4,7 +4,8 @@ public class AST implements ASTBuildable, ASTQueryable {
     TNode root;
     @Override
     public TNode CreateTNode(EntityType et) {
-        return null;
+        TNode newNode = new TNode(et);
+        return newNode;
     }
 
     @Override
@@ -13,8 +14,8 @@ public class AST implements ASTBuildable, ASTQueryable {
     }
 
     @Override
-    public void SetAttribute(TNode t, Attribute a) {
-
+    public void SetAttribute(TNode t, String a) {
+        t.SetAttribute(a);
     }
 
     @Override
