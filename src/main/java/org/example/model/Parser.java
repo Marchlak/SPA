@@ -51,27 +51,39 @@ public class Parser {
     }
 
     public TNode parseStmtList() {
+        TokenType type = getToken().getType();
 
-        return null;
+        if (type != TokenType.NAME && type != TokenType.WHILE) {
+            throw new RuntimeException("stmtList must contain at least one instruction (NAME lub WHILE)");
+        }
+
+        TNode stmtListNode = new TNode(EntityType.STMTLIST);
+
+        TNode firstStmt = parseStmt();
+        stmtListNode.setFirstChild(firstStmt);
+
+        TNode current = firstStmt;
+
+        while (getToken().getType() == TokenType.NAME || getToken().getType() == TokenType.WHILE) {
+            TNode nextStmt = parseStmt();
+            current.setRightSibling(nextStmt);
+            current = nextStmt;
+        }
+
+        return stmtListNode;
     }
 
-    public void parseStmt() {
+
+    public TNode parseStmt() {
         Token token = getToken();
 
-        switch (token.getType()) {
-            case PROCEDURE:
-                parseProcedure();
-                break;
-            case WHILE:
-                parseWhile();
-                break;
-            case NAME:
-                parseAssign();
-                break;
-            default:
-                throw new RuntimeException("Unexpected token in statement: " + token);
-        }
+        return switch (token.getType()) {
+            case WHILE -> parseWhile();
+            case NAME -> parseAssign();
+            default -> throw new RuntimeException("Unexpected token in statement: " + token);
+        };
     }
+
 
     public TNode parseWhile() {
         TNode whileNode = new TNode(EntityType.WHILE);
@@ -88,9 +100,22 @@ public class Parser {
     }
 
 
-    public void parseAssign() {
+    public TNode parseAssign() {
+        Token varToken = checkToken(TokenType.NAME);
+        checkToken(TokenType.EQUAL);
+        TNode exprNode = parseExpr();
+        checkToken(TokenType.SEMICOLON);
 
+        TNode assignNode = new TNode(EntityType.ASSIGN);
+        TNode varNode = new TNode(EntityType.VARIABLE);
+        varNode.setAttr(varToken.getValue());
+
+        assignNode.setFirstChild(varNode);
+        varNode.setRightSibling(exprNode);
+
+        return assignNode;
     }
+
 
     private TNode parseExpr() {
         TNode left = parseTerm();
