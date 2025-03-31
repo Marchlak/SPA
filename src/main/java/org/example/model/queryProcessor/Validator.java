@@ -4,7 +4,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 class Validator {
-    private Set<Synonym> synonyms;
+    private final Set<Synonym> synonyms;
     private String queryPattern;
 
     public Validator() {
@@ -12,11 +12,13 @@ class Validator {
     }
 
     boolean isValid(String query) {
-        query = separateQueryFromSynonyms(query.toUpperCase().trim());
+        try {
+            query = separateQueryFromSynonyms(query.toUpperCase().trim());
 
-        System.out.println(query);
-
-        setQueryPattern();
+            setQueryPattern();
+        } catch (Exception e) {
+            return false;
+        }
 
         return query.matches(queryPattern);
     }
@@ -33,25 +35,101 @@ class Validator {
 
     private void addSynonym(String declaration) {
         String[] split = declaration.split(" ");
+        String synonymName;
         SynonymType type = SynonymMapper.toSynonymType(split[0]);
         for(int i = 1; i < split.length; i++) {
-            synonyms.add(new Synonym(type, split[i].replace(',', ' ').trim()));
+            synonymName = split[i].replace(',', ' ').trim();
+            if(!synonymName.matches("^[A-Z][A-Z0-9#]*$")) {
+                throw new IllegalArgumentException();
+            }
+            synonyms.add(new Synonym(type, synonymName));
         }
     }
     private void setQueryPattern() {
+        queryPattern = "^SELECT (" +
+                getSynonymsPattern() +
+                "|BOOLEAN)(\\s?,\\s?(" +
+                getSynonymsPattern() +
+                "|BOOLEAN))* " +
+                getSuchThatPattern() +
+                getWithPattern() +
+                "$";
+    }
+
+    private String getSynonymsPattern() {
         StringBuilder sb = new StringBuilder();
-        sb.append("^SELECT (");
         for(Synonym s : synonyms) {
-            sb.append(s.getName()).append('|');
+            sb.append(s.name()).append('|');
         }
-        sb.append("BOOLEAN)(\\s*,\\s*(");
-        for(Synonym s : synonyms) {
-            sb.append(s.getName()).append('|');
+        sb.delete(sb.length() - 1, sb.length());
+        return sb.toString();
+    }
+
+    private String getSuchThatPattern() {
+        return "(SUCH THAT (" +
+                getRelRefPattern("MODIFIES") + "|" +
+                getRelRefPattern("USES") + "|" +
+                getRelRefPattern("PARENT") + "|" +
+                getRelRefPattern("PARENT\\*") + "|" +
+                getRelRefPattern("FOLLOWS") + "|" +
+                getRelRefPattern("FOLLOWS\\*") +
+                "))?";
+    }
+
+    private String getRelRefPattern(String rel) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("(")
+                .append(rel)
+                .append(" \\((")
+                .append(getStmtRefPattern())
+                .append(")\\s?,\\s?(");
+        String s = rel.equals("MODIFIES") || rel.equals("USES") ? getEntRefPattern() : getStmtRefPattern();
+        sb.append(s);
+        sb.append("))\\)");
+        return sb.toString();
+    }
+
+    private String getStmtRefPattern() {
+        return getSynonymsPattern() +
+                "|_|\\d+";
+    }
+
+    private String getEntRefPattern() {
+        return getSynonymsPattern() + "|_|\"[A-Z][A-Z0-9#]*\"";
+    }
+
+    private String getWithPattern() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("( WITH (");
+        for (Synonym s : synonyms) {
+            sb.append("(")
+                    .append(getVarNameAttributePattern(s.name()))
+                    .append(")|(")
+                    .append(getValueAttributePattern(s.name()))
+                    .append(")|(")
+                    .append(getStmtAttributePattern(s.name()))
+                    .append(")|");
         }
-        sb.append("BOOLEAN))* ");
-        sb.append("SUCH THAT");
-        sb.append("$");
-        System.out.println(sb);
-        queryPattern = sb.toString();
+        sb.delete(sb.length() - 1, sb.length());
+        sb.append("))?");
+        return sb.toString();
+    }
+
+    private String getVarNameAttributePattern(String name) {
+        return name +
+                "\\.VARNAME[\\s]?=[\\s]?" +
+                "\"[A-Z][A-Z0-9]*\"";
+    }
+
+    private String getValueAttributePattern(String name) {
+        return name +
+                "\\.VALUE[\\s]?=[\\s]?" +
+                "[0-9]+";
+    }
+
+    private String getStmtAttributePattern(String name) {
+        return name +
+                "\\.STMT#[\\s]?=[\\s]?" +
+                "[0-9]+";
     }
 }

@@ -1,6 +1,7 @@
 package org.example.model.queryProcessor;
 
 class SynonymMapper {
+    private SynonymMapper() {}
     public static SynonymType toSynonymType(String string) {
         return switch (string) {
             case "STMT" -> SynonymType.STMT;

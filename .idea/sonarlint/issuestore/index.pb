@@ -11,12 +11,6 @@ Z
 .src/main/java/org/example/model/TokenType.java,1\9\190de295143932849081f35b0263b413273ec3be
 7
 pom.xml,4\4\442292b8a7efeabbe4cc176709b833b1792140ec
-o
-?src/main/java/org/example/model/QueryProcessor/PQLKeywords.java,f\d\fd00e2df9ffc449030cbee1e4a78746edf972649
-n
->src/main/java/org/example/model/QueryProcessor/PQLKeyword.java,4\7\477c8451045ff8a1a22993561bc305c423416408
-n
->src/main/java/org/example/model/queryProcessor/PQLKeyword.java,5\c\5c69b19e30d502dc719c5a196d7ffe85b559cb88
 e
 5src/main/java/org/example/model/ast/ASTQueryable.java,6\e\6e07b32dbca7ebd07f063ac4ea21dfef03161558
 e
@@ -29,18 +23,14 @@ m
 =src/main/java/org/example/model/queryProcessor/Validator.java,4\e\4e692a9adcf629018d6a71124fc8402372c40b52
 [
 +src/main/java/org/example/model/Parser.java,0\a\0a5a3a4fc3faa290949d234218da2b7b1d907e2a
-l
-<src/main/java/org/example/model/queryProcessor/Variable.java,e\f\efad9963eb5876ff7a5de95b77e1a50d06c2406a
-p
-@src/main/java/org/example/model/queryProcessor/VariableType.java,d\9\d9f993850c0520277a8ab92da95c4223e91d8c8d
 k
 ;src/main/java/org/example/model/queryProcessor/Synonym.java,3\d\3d4ce95eb89ac5b918923d4dccc185f3dace8830
 o
 ?src/main/java/org/example/model/queryProcessor/SynonymType.java,0\3\03a20222c30391322036c5068b7d50a5015f73d6
 q
 Asrc/main/java/org/example/model/queryProcessor/SynonymMapper.java,b\d\bd9edee57776a6c5524f82ede76fd154e9c59937
-n
->src/main/java/org/example/model/queryProcessor/jakisSzrot.java,6\7\67b76bcfd42221de8f0b4e40b42890201ab1dfef
 :
 
 .gitignore,a\5\a5cc2925ca8258af241be7e5b0381edf30266302
+i
+9src/main/java/org/example/model/queryProcessor/guwno.java,9\b\9b172b76adc8f10c1d890eaec4604bc8b45c7453
