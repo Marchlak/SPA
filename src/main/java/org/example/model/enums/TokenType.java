@@ -2,6 +2,7 @@ package org.example.model.enums;
 
 public enum TokenType {
     PROCEDURE,
+    PROGRAM,
     IF,
     THEN,
     ELSE,

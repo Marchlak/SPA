@@ -2,6 +2,7 @@ package org.example.model.enums;
 
 public enum EntityType {
     PROGRAM,
+    PROCLIST,
     PROCEDURE,
     STMTLIST,
     STMT,

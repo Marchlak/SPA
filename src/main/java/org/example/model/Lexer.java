@@ -32,6 +32,9 @@ public class Lexer {
                 }
                 String w = word.toString();
                 switch (w) {
+                    case "program":
+                        tokens.add(new Token(TokenType.PROGRAM, w));
+                        break;
                     case "procedure":
                         tokens.add(new Token(TokenType.PROCEDURE, w));
                         break;

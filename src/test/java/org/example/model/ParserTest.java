@@ -2,6 +2,7 @@ package org.example.model;
 
 import org.example.model.ast.TNode;
 import org.example.model.enums.EntityType;
+import org.example.model.enums.TokenType;
 import org.junit.jupiter.api.*;
 
 import java.util.List;
@@ -93,4 +94,31 @@ class ParserTest {
 
         assertNull(stmt3.getRightSibling());
     }
+
+    @Test
+    public void testParseSimpleProgram() {
+        String input = "program myProgram { procedure myProcedure { x = 5; } }";
+
+        Lexer lexer = new Lexer(input);
+        List<Token> tokens = lexer.convertToTokens();
+
+        Parser parser = new Parser(tokens);
+
+        TNode programNode = parser.parseProgram();
+
+        assertNotNull(programNode);
+        assertEquals(EntityType.PROGRAM, programNode.getType());
+
+        assertEquals("myProgram", programNode.getAttr());
+
+        TNode procListNode = programNode.getFirstChild();
+        assertNotNull(procListNode);
+        assertEquals(EntityType.PROCLIST, procListNode.getType());
+
+        TNode procedureNode = procListNode.getFirstChild();
+        assertNotNull(procedureNode);
+        assertEquals(EntityType.PROCEDURE, procedureNode.getType());
+        assertEquals("myProcedure", procedureNode.getAttr());
+    }
+
 }
