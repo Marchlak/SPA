@@ -47,11 +47,8 @@ public class Parser {
     }
 
     public TNode parseStmtList() {
-        TokenType type = getToken().getType();
-
-        if (type != TokenType.NAME && type != TokenType.WHILE) {
-            throw new RuntimeException("stmtList must contain at least one instruction (NAME lub WHILE)");
-        }
+        if (getToken().getType() == TokenType.RBRACE)
+            throw new RuntimeException("stmtList must contain at least one instruction (NAME, WHILE, CALL or IF)");
 
         TNode stmtListNode = new TNode(EntityType.STMTLIST);
 
@@ -60,7 +57,7 @@ public class Parser {
 
         TNode current = firstStmt;
 
-        while (getToken().getType() == TokenType.NAME || getToken().getType() == TokenType.WHILE) {
+        while (getToken().getType() != TokenType.RBRACE && getToken().getType() != TokenType.EOF) {
             TNode nextStmt = parseStmt();
             current.setRightSibling(nextStmt);
             current = nextStmt;
@@ -76,6 +73,8 @@ public class Parser {
         return switch (token.getType()) {
             case WHILE -> parseWhile();
             case NAME -> parseAssign();
+            case CALL -> parseCall();
+            case IF -> parseIf();
             default -> throw new RuntimeException("Unexpected token in statement: " + token);
         };
     }
@@ -112,6 +111,36 @@ public class Parser {
         return assignNode;
     }
 
+    private TNode parseCall() {
+        TNode callNode = new TNode(EntityType.CALL);
+        checkToken(TokenType.CALL);
+        Token procNameToken = checkToken(TokenType.NAME);
+        TNode procNameNode = new TNode(EntityType.VARIABLE);
+        procNameNode.setAttr(procNameToken.getValue());
+        callNode.setFirstChild(procNameNode);
+        checkToken(TokenType.SEMICOLON);
+        return callNode;
+    }
+
+    private TNode parseIf() {
+        TNode ifNode = new TNode(EntityType.IF);
+        checkToken(TokenType.IF);
+        Token condToken = checkToken(TokenType.NAME);
+        TNode condNode = new TNode(EntityType.VARIABLE);
+        condNode.setAttr(condToken.getValue());
+        ifNode.setFirstChild(condNode);
+        checkToken(TokenType.THEN);
+        checkToken(TokenType.LBRACE);
+        TNode thenStmtList = parseStmtList();
+        checkToken(TokenType.RBRACE);
+        condNode.setRightSibling(thenStmtList);
+        checkToken(TokenType.ELSE);
+        checkToken(TokenType.LBRACE);
+        TNode elseStmtList = parseStmtList();
+        checkToken(TokenType.RBRACE);
+        thenStmtList.setRightSibling(elseStmtList);
+        return ifNode;
+    }
 
     private TNode parseExpr() {
         TNode left = parseTerm();
