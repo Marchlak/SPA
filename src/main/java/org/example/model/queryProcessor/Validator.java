@@ -19,7 +19,6 @@ class Validator {
         } catch (Exception e) {
             return false;
         }
-
         return query.matches(queryPattern);
     }
 
@@ -46,11 +45,11 @@ class Validator {
         }
     }
     private void setQueryPattern() {
-        queryPattern = "^SELECT (" +
+        queryPattern = "^SELECT\\s+(" +
                 getSynonymsPattern() +
                 "|BOOLEAN)(\\s?,\\s?(" +
                 getSynonymsPattern() +
-                "|BOOLEAN))* " +
+                "|BOOLEAN))*\\s+" +
                 getSuchThatPattern() +
                 getWithPattern() +
                 "$";
@@ -66,7 +65,7 @@ class Validator {
     }
 
     private String getSuchThatPattern() {
-        return "(SUCH THAT (" +
+        return "(SUCH THAT\\s+(" +
                 getRelRefPattern("MODIFIES") + "|" +
                 getRelRefPattern("USES") + "|" +
                 getRelRefPattern("PARENT") + "|" +
@@ -80,7 +79,7 @@ class Validator {
         StringBuilder sb = new StringBuilder();
         sb.append("(")
                 .append(rel)
-                .append(" \\((")
+                .append("\\s+\\((")
                 .append(getStmtRefPattern())
                 .append(")\\s?,\\s?(");
         String s = rel.equals("MODIFIES") || rel.equals("USES") ? getEntRefPattern() : getStmtRefPattern();
@@ -100,15 +99,17 @@ class Validator {
 
     private String getWithPattern() {
         StringBuilder sb = new StringBuilder();
-        sb.append("( WITH (");
+        sb.append("(\\s+WITH\\s+(");
         for (Synonym s : synonyms) {
-            sb.append("(")
-                    .append(getVarNameAttributePattern(s.name()))
-                    .append(")|(")
-                    .append(getValueAttributePattern(s.name()))
-                    .append(")|(")
-                    .append(getStmtAttributePattern(s.name()))
-                    .append(")|");
+            sb.append("(");
+            switch (s.type()) {
+                case STMT, ASSIGN, WHILE -> sb.append(getStmtAttributePattern(s.name()))
+                        .append(")|");
+                case VARIABLE -> sb.append(getVarNameAttributePattern(s.name()))
+                        .append(")|");
+                case CONSTANT -> sb.append(getValueAttributePattern(s.name()))
+                        .append(")|");
+            }
         }
         sb.delete(sb.length() - 1, sb.length());
         sb.append("))?");

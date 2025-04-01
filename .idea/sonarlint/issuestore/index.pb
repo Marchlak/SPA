@@ -7,18 +7,12 @@ S
 #src/main/java/org/example/Main.java,0\b\0ba1b9c7a4878802f938e331cc2d8a042087ec6b
 Z
 *src/main/java/org/example/model/Lexer.java,4\9\49ae08dcc1bfd3579f401d41a628ddff10760b94
-^
-.src/main/java/org/example/model/TokenType.java,1\9\190de295143932849081f35b0263b413273ec3be
 7
 pom.xml,4\4\442292b8a7efeabbe4cc176709b833b1792140ec
 e
 5src/main/java/org/example/model/ast/ASTQueryable.java,6\e\6e07b32dbca7ebd07f063ac4ea21dfef03161558
 e
 5src/main/java/org/example/model/ast/ASTBuildable.java,d\0\d0d10d09f74d4d7d7c9c580a2798042a6949b381
-c
-3src/main/java/org/example/model/ast/EntityType.java,7\5\758f93ea2a1dc4b087c20d00350824f1f249c1e0
-\
-,src/main/java/org/example/model/ast/AST.java,b\b\bbe564eea95b65a1d368521a631cacf631bedeac
 m
 =src/main/java/org/example/model/queryProcessor/Validator.java,4\e\4e692a9adcf629018d6a71124fc8402372c40b52
 [
@@ -32,5 +26,3 @@ Asrc/main/java/org/example/model/queryProcessor/SynonymMapper.java,b\d\bd9edee5
 :
 
 .gitignore,a\5\a5cc2925ca8258af241be7e5b0381edf30266302
-i
-9src/main/java/org/example/model/queryProcessor/guwno.java,9\b\9b172b76adc8f10c1d890eaec4604bc8b45c7453
