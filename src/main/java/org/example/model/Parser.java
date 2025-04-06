@@ -28,6 +28,38 @@ public class Parser {
         return token;
     }
 
+    public TNode parseProgram() {
+        checkToken(TokenType.PROGRAM);
+        Token nameToken = checkToken(TokenType.NAME);
+
+        TNode programNode = new TNode(EntityType.PROGRAM);
+        programNode.setAttr(nameToken.getValue());
+
+        checkToken(TokenType.LBRACE);
+
+        TNode procListNode = new TNode(EntityType.PROCLIST);
+        programNode.setFirstChild(procListNode);
+
+        while (getToken().getType() == TokenType.PROCEDURE) {
+            TNode procedureNode = parseProcedure();
+
+            if (procListNode.getFirstChild() == null) {
+                procListNode.setFirstChild(procedureNode);
+            } else {
+                TNode current = procListNode.getFirstChild();
+                while (current.getRightSibling() != null) {
+                    current = current.getRightSibling();
+                }
+                current.setRightSibling(procedureNode);
+            }
+        }
+
+        checkToken(TokenType.RBRACE);
+        checkToken(TokenType.EOF);
+
+        return programNode;
+    }
+
     public TNode parseProcedure() {
         checkToken(TokenType.PROCEDURE);
 
@@ -191,37 +223,4 @@ public class Parser {
             throw new RuntimeException("Unexpected token in factor: " + token);
         }
     }
-
-    public TNode parseProgram() {
-        checkToken(TokenType.PROGRAM);
-        Token nameToken = checkToken(TokenType.NAME);
-
-        TNode programNode = new TNode(EntityType.PROGRAM);
-        programNode.setAttr(nameToken.getValue());
-
-        checkToken(TokenType.LBRACE);
-
-        TNode procListNode = new TNode(EntityType.PROCLIST);
-        programNode.setFirstChild(procListNode);
-
-        while (getToken().getType() == TokenType.PROCEDURE) {
-            TNode procedureNode = parseProcedure();
-
-            if (procListNode.getFirstChild() == null) {
-                procListNode.setFirstChild(procedureNode);
-            } else {
-                TNode current = procListNode.getFirstChild();
-                while (current.getRightSibling() != null) {
-                    current = current.getRightSibling();
-                }
-                current.setRightSibling(procedureNode);
-            }
-        }
-
-        checkToken(TokenType.RBRACE);
-        checkToken(TokenType.EOF);
-
-        return programNode;
-    }
-
 }

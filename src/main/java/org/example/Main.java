@@ -3,6 +3,9 @@ package org.example;
 import org.example.model.Lexer;
 import org.example.model.Parser;
 import org.example.model.Token;
+import org.example.model.ast.TNode;
+import org.example.model.queryProcessor.DesignExtractor;
+import org.example.model.queryProcessor.PKB;
 
 import java.util.List;
 
@@ -12,9 +15,34 @@ public class Main {
         Lexer lexer = new Lexer(input);
         List<Token> tokens = lexer.convertToTokens();
         Parser parser = new Parser(tokens);
+        TNode ast = parser.parseProgram();
+        PKB pkb = new PKB();
+        DesignExtractor designExtractor = new DesignExtractor(pkb);
+        designExtractor.extract(ast);
 
         try {
-            System.out.println(parser.parseProgram().toString(0));
+            System.out.println("Parent(10) -> " + pkb.getParent(10));
+            System.out.println("Parent*(11) -> " + pkb.getParentStar(11));
+            System.out.println("ParentBy(8) -> " + pkb.getParentedBy(8));
+
+            System.out.println("\n");
+
+            System.out.println("Follows(1) -> " + pkb.getFollows(1));
+            System.out.println("FollowedBy(8) -> " + pkb.getFollowedBy(8));
+            System.out.println("Follows*(8) -> " + pkb.getFollowedByStar(8));
+
+            System.out.println("\n");
+
+            System.out.println("Modified by stmt 3 -> " + pkb.getModifiedByStmt(3));
+            System.out.println("Modified by stmt 7 -> " + pkb.getModifiedByStmt(7));
+            System.out.println("Modified by proc Triangle -> " + pkb.getModifiedByProc("Triangle"));
+
+            System.out.println("\n");
+            System.out.println("Used by stmt 2 (a = t + 10) -> " + pkb.getUsedByStmt(2));
+            System.out.println("Used by stmt 3 (d = t * a + 2) -> " + pkb.getUsedByStmt(4));
+
+            System.out.println("Used by proc Triangle " + pkb.getUsedByProc("Triangle"));
+
         } catch (Exception e) {
             e.printStackTrace();
         }
