@@ -2,7 +2,7 @@ package org.example.model.queryProcessor;
 
 import java.util.HashSet;
 import java.util.Set;
-
+//todo in relationships only correct variables
 class Validator {
     private final Set<Synonym> synonyms;
     private String queryPattern;
@@ -12,6 +12,7 @@ class Validator {
     }
 
     boolean isValid(String query) {
+        synonyms.clear();
         try {
             query = separateQueryFromSynonyms(query.toUpperCase().trim());
 
@@ -19,7 +20,12 @@ class Validator {
         } catch (Exception e) {
             return false;
         }
+
         return query.matches(queryPattern);
+    }
+
+    Set<Synonym> getSynonyms() {
+        return synonyms;
     }
 
     private String separateQueryFromSynonyms(String query) {

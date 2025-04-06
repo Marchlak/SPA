@@ -26,3 +26,21 @@ Asrc/main/java/org/example/model/queryProcessor/SynonymMapper.java,b\d\bd9edee5
 :
 
 .gitignore,a\5\a5cc2925ca8258af241be7e5b0381edf30266302
+^
+.src/main/java/org/example/model/ast/TNode.java,1\4\14ec95d590e5c4aa9affc8cb93bd77af4c4ab833
+s
+Csrc/main/java/org/example/model/queryProcessor/DesignExtractor.java,b\1\b128095ca0002c8467b75bab74c1ddcb24cefb53
+g
+7src/main/java/org/example/model/queryProcessor/PKB.java,f\1\f13a915d207c2103dc4c955e562fbca412d3e268
+r
+Bsrc/main/java/org/example/model/queryProcessor/QueryProcessor.java,d\6\d6cf1319affcd85b5e96137ed6baa701606891f1
+r
+Bsrc/main/java/org/example/model/queryProcessor/QueryEvaluator.java,9\9\99d8d9e74050504c32df6fb8bce2ea254c71c46f
+e
+5src/main/java/org/example/model/enums/EntityType.java,5\2\52e4b2b8d9ec3343419ca0e53d4479d64085d6b7
+d
+4src/main/java/org/example/model/enums/TokenType.java,4\4\44ca2b1c2883dd1692b30927032b500aa8e8777a
+t
+Dsrc/main/java/org/example/model/queryProcessor/RelationshipType.java,b\f\bf5bd780c5964c0aaa4c53edc9f63a1f66ceabc4
+p
+@src/main/java/org/example/model/queryProcessor/Relationship.java,d\a\dab6fd590cb31e631c228c29434ee2ddc2f0fd0e

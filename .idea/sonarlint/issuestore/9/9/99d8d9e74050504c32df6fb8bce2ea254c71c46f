@@ -1,0 +1,12 @@
+
+y
+java:S1450"WRemove the "synonyms" field and declare it as a local variable in the relevant methods.(Ë´£çûÿÿÿÿ8åïµäà2
+T
+java:S1135
+"2Complete the task associated to this TODO comment.(¹ó¿¹ûÿÿÿÿ8æïµäà2
+L	java:S106"+Replace this use of System.err by a logger.(ğğíóúÿÿÿÿ8èïµäà2
+G	java:S106?"+Replace this use of System.out by a logger.(Á·¹õ8ê™ºäà2
+D
+java:S1068"'Remove this unused "pkb" private field.(à¹†ğ8Ïßäà2
+N
+java:S1068",Remove this unused "synonyms" private field.(Ë´£çûÿÿÿÿ8òïµäà2

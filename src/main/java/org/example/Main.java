@@ -6,6 +6,7 @@ import org.example.model.Token;
 import org.example.model.ast.TNode;
 import org.example.model.queryProcessor.DesignExtractor;
 import org.example.model.queryProcessor.PKB;
+import org.example.model.queryProcessor.QueryEvaluator;
 
 import java.util.List;
 
@@ -19,7 +20,7 @@ public class Main {
         PKB pkb = new PKB();
         DesignExtractor designExtractor = new DesignExtractor(pkb);
         designExtractor.extract(ast);
-
+        QueryEvaluator queryEvaluator = new QueryEvaluator(pkb);
         try {
             System.out.println("Parent(10) -> " + pkb.getParent(10));
             System.out.println("Parent*(11) -> " + pkb.getParentStar(11));
@@ -42,6 +43,11 @@ public class Main {
             System.out.println("Used by stmt 3 (d = t * a + 2) -> " + pkb.getUsedByStmt(4));
 
             System.out.println("Used by proc Triangle " + pkb.getUsedByProc("Triangle"));
+
+            System.out.println("\n");
+            String synonyms = "stmt s1, s2; assign a; while w; variable v;";
+            System.out.println("Select s1 such that Follows (s1, s2)");
+            System.out.println(queryEvaluator.evaluateQuery(synonyms + "Select s1 such that Follows (s1, s2)"));
 
         } catch (Exception e) {
             e.printStackTrace();
