@@ -1,13 +1,8 @@
 package org.example.model.queryProcessor;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Stream;
+import java.util.*;
+import java.util.stream.Collectors;
 
-//todo finish
 public class QueryEvaluator {
     private final PKB pkb;
     private final Validator validator;
@@ -24,64 +19,140 @@ public class QueryEvaluator {
                 throw new IllegalArgumentException();
             }
         } catch (IllegalArgumentException e) {
-            System.err.println("Invalid query");
             return Collections.emptySet();
         }
-
         synonyms = validator.getSynonyms();
-
         String[] split = query.split(";");
         String queryToProcess = split[split.length - 1].trim().toUpperCase();
-
         return processQuery(queryToProcess);
     }
 
     private Set<String> processQuery(String query) {
-        Set<String> result = new HashSet<>();
-
-        List<Relationship> relationships = new ArrayList<>();
-        if (query.contains("FOLLOWS")) {
-            relationships = Stream.concat(relationships.stream(), extractRelationship(query, RelationshipType.FOLLOWS).stream()).toList();
-        }
-        if (query.contains("FOLLOWS*")) {
-            relationships = Stream.concat(relationships.stream(), extractRelationship(query, RelationshipType.FOLLOWS_STAR).stream()).toList();
-        }
-        if (query.contains("PARENT")) {
-            relationships = Stream.concat(relationships.stream(), extractRelationship(query, RelationshipType.PARENT).stream()).toList();
-        }
-        if (query.contains("PARENT*")) {
-            relationships = Stream.concat(relationships.stream(), extractRelationship(query, RelationshipType.PARENT_STAR).stream()).toList();
-        }
-        if (query.contains("MODIFIES")) {
-            relationships = Stream.concat(relationships.stream(), extractRelationship(query, RelationshipType.MODIFIES).stream()).toList();
-        }
-        if (query.contains("USES")) {
-            relationships = Stream.concat(relationships.stream(), extractRelationship(query, RelationshipType.USES).stream()).toList();
-        }
-
+        List<Relationship> relationships = extractRelationships(query);
+        Map<String, Set<String>> partialSolutions = initSynonymMap();
         for (Relationship r : relationships) {
-            System.out.println(r.getType().getType() + " " + r.getFirstArg() + " " + r.getSecondArg());
+            applyRelationship(r, partialSolutions);
         }
-
-
-        return result;
+        return finalizeResult(query, partialSolutions);
     }
 
-    private List<Relationship> extractRelationship(String query, RelationshipType type) {
+    private List<Relationship> extractRelationships(String query) {
         List<Relationship> relationships = new ArrayList<>();
-
-        String[] split = query.split(type.getType());
-        for(int i = 1; i < split.length; i++) {
-            relationships.add(new Relationship(type, extractRelationshipArgs(split[i])));
+        if (query.contains("FOLLOWS")) {
+            relationships.addAll(extractRelationship(query, RelationshipType.FOLLOWS));
+        }
+        if (query.contains("FOLLOWS*")) {
+            relationships.addAll(extractRelationship(query, RelationshipType.FOLLOWS_STAR));
+        }
+        if (query.contains("PARENT")) {
+            relationships.addAll(extractRelationship(query, RelationshipType.PARENT));
+        }
+        if (query.contains("PARENT*")) {
+            relationships.addAll(extractRelationship(query, RelationshipType.PARENT_STAR));
+        }
+        if (query.contains("MODIFIES")) {
+            relationships.addAll(extractRelationship(query, RelationshipType.MODIFIES));
+        }
+        if (query.contains("USES")) {
+            relationships.addAll(extractRelationship(query, RelationshipType.USES));
         }
         return relationships;
     }
 
-    private String extractRelationshipArgs(String string) {
-        StringBuilder stringBuilder = new StringBuilder();
-        stringBuilder.append(string.split("\\)")[0].trim());
-        stringBuilder.deleteCharAt(0);
-        return stringBuilder.toString();
+    private List<Relationship> extractRelationship(String query, RelationshipType type) {
+        List<Relationship> result = new ArrayList<>();
+        String[] split = query.split(type.getType());
+        for (int i = 1; i < split.length; i++) {
+            result.add(new Relationship(type, extractRelationshipArgs(split[i])));
+        }
+        return result;
     }
 
+    private String extractRelationshipArgs(String s) {
+        String tmp = s.split("\\)")[0].trim();
+        return tmp.substring(1);
+    }
+
+    private Map<String, Set<String>> initSynonymMap() {
+        Map<String, Set<String>> map = new HashMap<>();
+        for (Synonym syn : synonyms) {
+            map.put(syn.name(), new HashSet<>());
+        }
+        return map;
+    }
+
+    private void applyRelationship(Relationship r, Map<String, Set<String>> partialSolutions) {
+        RelationshipType t = r.getType();
+        String left = r.getFirstArg();
+        String right = r.getSecondArg();
+        if (t == RelationshipType.PARENT) {
+            handleParent(left, right, partialSolutions);
+        } else if (t == RelationshipType.FOLLOWS) {
+            handleFollows(left, right, partialSolutions);
+        }
+    }
+
+    private void handleParent(String left, String right, Map<String, Set<String>> partialSolutions) {
+        if (isNumeric(right) && synonymsContain(left)) {
+            int c = Integer.parseInt(right);
+            int p = pkb.getParent(c);
+            if (p > 0) {
+                partialSolutions.get(left).add(String.valueOf(p));
+            }
+        }
+        if (isNumeric(left) && synonymsContain(right)) {
+            int p = Integer.parseInt(left);
+            Set<Integer> kids = pkb.getParentedBy(p);
+            for (int k : kids) {
+                partialSolutions.get(right).add(String.valueOf(k));
+            }
+        }
+    }
+
+    private void handleFollows(String left, String right, Map<String, Set<String>> partialSolutions) {
+        if (isNumeric(right) && synonymsContain(left)) {
+            int r = Integer.parseInt(right);
+            int f = pkb.getFollowedBy(r);
+            if (f > 0) {
+                partialSolutions.get(left).add(String.valueOf(f));
+            }
+        }
+        if (isNumeric(left) && synonymsContain(right)) {
+            int f = Integer.parseInt(left);
+            Integer succ = pkb.getFollows(f);
+            if (succ != null) {
+                partialSolutions.get(right).add(String.valueOf(succ));
+            }
+        }
+    }
+
+    private boolean synonymsContain(String s) {
+        for (Synonym syn : synonyms) {
+            if (syn.name().equalsIgnoreCase(s)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean isNumeric(String s) {
+        try {
+            Integer.parseInt(s);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private Set<String> finalizeResult(String query, Map<String, Set<String>> partialSolutions) {
+        String selectPart = query.split("SELECT")[1].trim().split("SUCH THAT|WITH")[0].trim();
+        if (selectPart.contains(" ")) {
+            selectPart = selectPart.split(" ")[0];
+        }
+        Set<String> result = new HashSet<>();
+        if (synonymsContain(selectPart)) {
+            result.addAll(partialSolutions.get(selectPart));
+        }
+        return result.stream().filter(s -> !s.isBlank()).collect(Collectors.toSet());
+    }
 }

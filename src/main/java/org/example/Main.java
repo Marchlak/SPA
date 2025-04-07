@@ -46,8 +46,8 @@ public class Main {
 
             System.out.println("\n");
             String synonyms = "stmt s1, s2; assign a; while w; variable v;";
-            System.out.println("Select s1 such that Follows (s1, s2)");
-            System.out.println(queryEvaluator.evaluateQuery(synonyms + "Select s1 such that Follows (s1, s2)"));
+            System.out.println("Select s1 such that Follows (s1, 10)");
+            System.out.println(queryEvaluator.evaluateQuery(synonyms + "Select s1 such that Uses (23, v)"));
 
         } catch (Exception e) {
             e.printStackTrace();
