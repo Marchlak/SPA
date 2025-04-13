@@ -34,6 +34,10 @@ public class QueryEvaluator {
       RelationshipType t = r.getType();
       String left = r.getFirstArg();
       String right = r.getSecondArg();
+      if (t == RelationshipType.CALLS)
+        handleCalls(left, right, partialSolutions);
+      else if (t == RelationshipType.CALLS_STAR)
+        handleCallsStar(left, right, partialSolutions);
       if (t == RelationshipType.PARENT)
         handleParent(left, right, partialSolutions);
       if (t == RelationshipType.PARENT_STAR)
@@ -41,17 +45,24 @@ public class QueryEvaluator {
       if (t == RelationshipType.FOLLOWS)
         handleFollows(left, right, partialSolutions);
       if (t == RelationshipType.FOLLOWS_STAR){}
-        //handleFollowsStar(left, right, partialSolutions);
+      //handleFollowsStar(left, right, partialSolutions);
       if (t == RelationshipType.USES){}
-        //handleUses(left, right, partialSolutions);
+      //handleUses(left, right, partialSolutions);
       if (t == RelationshipType.MODIFIES){}
-        //handleModifies(left, right, partialSolutions);
+      //handleModifies(left, right, partialSolutions);
     }
     return finalizeResult(query, partialSolutions);
   }
 
   private List<Relationship> extractRelationships(String query) {
     List<Relationship> result = new ArrayList<>();
+    if (query.contains("Calls*")) {
+      result.addAll(extractRelationship(query, RelationshipType.CALLS_STAR));
+    }
+    if (query.contains("Calls")) {
+      result.addAll(extractRelationship(query, RelationshipType.CALLS));
+    }
+
     if (query.contains("PARENT*")) {
       result.addAll(extractRelationship(query, RelationshipType.PARENT_STAR));
     } else if (query.contains("PARENT")) {
@@ -76,7 +87,7 @@ public class QueryEvaluator {
 
   private List<Relationship> extractRelationship(String query, RelationshipType type) {
     List<Relationship> relationships = new ArrayList<>();
-    String[] split = query.split(type.getType());
+    String[] split = query.split("\\b" + type.getType() + "\\b");
     for (int i = 1; i < split.length; i++) {
       relationships.add(new Relationship(type, extractRelationshipArgs(split[i])));
     }
@@ -85,7 +96,8 @@ public class QueryEvaluator {
 
   private String extractRelationshipArgs(String s) {
     String tmp = s.split("\\)")[0].trim();
-    return tmp.substring(1);
+    String args = tmp.substring(1);
+    return args.replace("\"", "");
   }
 
   private Map<String, Set<String>> initSynonymMap() {
@@ -140,6 +152,58 @@ public class QueryEvaluator {
       if (succ != null)
         partialSolutions.get(right).add(String.valueOf(succ));
     }
+  }
+
+  private void handleCalls(String left, String right, Map<String, Set<String>> partialSolutions) {
+    String caller = left.replace("\"", "");
+    String callee = right.replace("\"", "");
+
+    if (synonymsContain(left) && synonymsContain(right)) {
+      for (Map.Entry<String, Set<String>> entry : pkb.getCallsMap().entrySet()) {
+        String procCaller = entry.getKey();
+        for (String procCallee : entry.getValue()) {
+          partialSolutions.get(left).add(procCaller);
+          partialSolutions.get(right).add(procCallee);
+        }
+      }
+    } else if (isStringLiteral(left) && synonymsContain(right)) {
+      Set<String> callees = pkb.getCalls(caller);
+      partialSolutions.get(right).addAll(callees);
+    } else if (isStringLiteral(right) && synonymsContain(left)) {
+      for (Map.Entry<String, Set<String>> entry : pkb.getCallsMap().entrySet()) {
+        if (entry.getValue().contains(callee)) {
+          partialSolutions.get(left).add(entry.getKey());
+        }
+      }
+    }
+  }
+
+  private void handleCallsStar(String left, String right, Map<String, Set<String>> partialSolutions) {
+    String caller = left.replace("\"", "");
+    String callee = right.replace("\"", "");
+
+    if (synonymsContain(left) && synonymsContain(right)) {
+      for (String proc : pkb.getCallsMap().keySet()) {
+        Set<String> allCallees = pkb.getCallsStar(proc);
+        for (String c : allCallees) {
+          partialSolutions.get(left).add(proc);
+          partialSolutions.get(right).add(c);
+        }
+      }
+    } else if (isStringLiteral(left) && synonymsContain(right)) {
+      Set<String> callees = pkb.getCallsStar(caller);
+      partialSolutions.get(right).addAll(callees);
+    } else if (isStringLiteral(right) && synonymsContain(left)) {
+      for (String proc : pkb.getCallsMap().keySet()) {
+        if (pkb.getCallsStar(proc).contains(callee)) {
+          partialSolutions.get(left).add(proc);
+        }
+      }
+    }
+  }
+
+  private boolean isStringLiteral(String s) {
+    return s.startsWith("\"") && s.endsWith("\"");
   }
 
 //  private void handleFollowsStar(String left, String right, Map<String, Set<String>> partialSolutions) {

@@ -10,6 +10,7 @@ class SynonymMapper {
             case "VARIABLE" -> SynonymType.VARIABLE;
             case "CONSTANT" -> SynonymType.CONSTANT;
             case "PROG_LINE" -> SynonymType.PROG_LINE;
+            case "PROCEDURE" -> SynonymType.PROCEDURE;
             default -> throw new IllegalStateException("Unexpected value: " + string);
         };
     }

@@ -28,7 +28,7 @@ public class DesignExtractor {
     }
 
     private void processProcedure(TNode procNode) {
-        currentProcedure = procNode.getAttr();
+        currentProcedure = procNode.getAttr().replace("\"", "");
         pkb.addProcedure(currentProcedure);
         TNode stmtList = procNode.getFirstChild();
         processStmtList(stmtList);
@@ -119,31 +119,31 @@ public class DesignExtractor {
 
     private void processCall(TNode callNode, int stmtNumber) {
         TNode procNameNode = callNode.getFirstChild();
-        String calledProc = procNameNode.getAttr();
+        String calledProc = procNameNode.getAttr().replace("\"", "");
 
-        // Handle Modifies
+        if (currentProcedure != null) {
+            pkb.setCalls(currentProcedure, calledProc);
+        }
+
+        if (!pkb.getCallsMap().containsKey(calledProc)) {
+            pkb.addProcedure(calledProc);
+        }
+
         Set<String> modifies = pkb.getModifiedByProc(calledProc);
         modifies.forEach(var -> {
+            pkb.setModifiesProc(currentProcedure, var);
             pkb.setModifiesStmt(stmtNumber, var);
-            if (currentProcedure != null) {
-                pkb.setModifiesProc(currentProcedure, var);
-            }
         });
 
-        // Handle Uses
         Set<String> uses = pkb.getUsedByProc(calledProc);
         uses.forEach(var -> {
+            pkb.setUsesProc(currentProcedure, var);
             pkb.setUsesStmt(stmtNumber, var);
-            if (currentProcedure != null) {
-                pkb.setUsesProc(currentProcedure, var);
-            }
-            // Propagate to parent containers
             if (!parentStack.isEmpty()) {
                 pkb.propagateUsesToParent(stmtNumber, var);
             }
         });
     }
-
     private void processIf(TNode ifNode, int stmtNumber) {
         // Handle control variable (Uses)
         TNode cond = ifNode.getFirstChild();

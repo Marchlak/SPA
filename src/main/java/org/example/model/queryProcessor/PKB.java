@@ -24,6 +24,9 @@ public class PKB {
     private final Map<Integer, EntityType> stmtTypeMap = new HashMap<>();
     private final Set<String> procedures = new HashSet<>();
 
+    private final Map<String, Set<String>> callsMap = new HashMap<>();
+    private final Map<String, Set<String>> callsStarCache = new HashMap<>();
+
     public void setParent(int parent, int child) {
         parentMap.put(child, parent);
         childrenMap.computeIfAbsent(parent, k -> new HashSet<>()).add(child);
@@ -251,5 +254,34 @@ public void printState() {
     // }
 }
 
+    public void setCalls(String caller, String callee) {
+        callsMap.computeIfAbsent(caller, k -> new HashSet<>()).add(callee);
+    }
 
+    public Set<String> getCallsStar(String caller) {
+        if (!callsStarCache.containsKey(caller)) {
+            Set<String> calledProcedures = new HashSet<>();
+            Deque<String> queue = new ArrayDeque<>();
+            queue.add(caller);
+
+            while (!queue.isEmpty()) {
+                String current = queue.poll();
+                for (String callee : callsMap.getOrDefault(current, new HashSet<>())) {
+                    if (calledProcedures.add(callee)) {
+                        queue.add(callee);
+                    }
+                }
+            }
+            callsStarCache.put(caller, calledProcedures);
+        }
+        return new HashSet<>(callsStarCache.get(caller));
+    }
+
+    public Set<String> getCalls(String caller) {
+        return callsMap.getOrDefault(caller, new HashSet<>());
+    }
+
+    public Map<String, Set<String>> getCallsMap() {
+        return new HashMap<>(callsMap);
+    }
 }

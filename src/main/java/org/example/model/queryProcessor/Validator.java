@@ -77,7 +77,9 @@ class Validator {
                 getRelRefPattern("PARENT") + "|" +
                 getRelRefPattern("PARENT\\*") + "|" +
                 getRelRefPattern("FOLLOWS") + "|" +
-                getRelRefPattern("FOLLOWS\\*") +
+                getRelRefPattern("FOLLOWS\\*") + "|" +
+                getRelRefPattern("CALLS") + "|" +
+                getRelRefPattern("CALLS\\*") +
                 "))?";
     }
 
@@ -115,6 +117,7 @@ class Validator {
                         .append(")|");
                 case CONSTANT -> sb.append(getValueAttributePattern(s.name()))
                         .append(")|");
+                case PROCEDURE -> sb.append(getProcNameAttributePattern(s.name())).append(")|");
             }
         }
         sb.delete(sb.length() - 1, sb.length());
@@ -138,5 +141,9 @@ class Validator {
         return name +
                 "\\.STMT#[\\s]?=[\\s]?" +
                 "[0-9]+";
+    }
+
+    private String getProcNameAttributePattern(String name) {
+        return name + "\\.PROCNAME[\\s]?=[\\s]?\"[A-Z][A-Z0-9]*\"";
     }
 }

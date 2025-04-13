@@ -6,7 +6,8 @@ enum SynonymType {
     WHILE("WHILE"),
     VARIABLE("VARIABLE"),
     CONSTANT("CONSTANT"),
-    PROG_LINE("PROG_LINE");
+    PROG_LINE("PROG_LINE"),
+    PROCEDURE("PROCEDURE");
 
     private final String type;
 
