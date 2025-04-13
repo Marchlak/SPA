@@ -112,10 +112,10 @@ public class QueryEvaluator {
   }
 
   private void handleParentStar(String left, String right, Map<String, Set<String>> partialSolutions) {
+
     if (isNumeric(right) && synonymsContain(left)) {
       int c = Integer.parseInt(right);
       Set<Integer> parents = pkb.getParentStar(c);
-      System.out.println(parents);
       for (int p : parents)
         partialSolutions.get(left).add(String.valueOf(p));
     }

@@ -33,10 +33,10 @@ public class Main {
             System.out.println("Ready");
             Scanner in = new Scanner(System.in, "ibm852");
 
-    /*      String test = "Select s1 such that Parent* (s1, 10)";
-            String synonyms = "stmt s1, s2; assign a; while w; variable v;";
-            System.out.println(test);
-            System.out.println(queryEvaluator.evaluateQuery(synonyms + test));*/
+            // String test = "Select s1 such that Parent* (s1, 10)";
+            // String synonyms = "stmt s1, s2; assign a; while w; variable v;";
+            // System.out.println(test);
+            // System.out.println(queryEvaluator.evaluateQuery(synonyms + test));
 
             while (true) {
                 if (!in.hasNextLine()) break;

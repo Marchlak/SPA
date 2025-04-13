@@ -37,4 +37,5 @@ class Relationship {
     public void setSecondArg(String secondArg) {
         this.secondArg = secondArg;
     }
+    
 }

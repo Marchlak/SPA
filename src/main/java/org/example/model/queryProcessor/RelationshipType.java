@@ -2,9 +2,9 @@ package org.example.model.queryProcessor;
 
 enum RelationshipType {
     FOLLOWS("FOLLOWS"),
-    FOLLOWS_STAR("FOLLOWS*"),
+    FOLLOWS_STAR("FOLLOWS\\*"),
     PARENT("PARENT"),
-    PARENT_STAR("PARENT*"),
+    PARENT_STAR("PARENT\\*"),
     MODIFIES("MODIFIES"),
     USES("USES");
 

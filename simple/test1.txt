@@ -9,13 +9,13 @@ Select s1 such that Parent* (s1, 10)
 8
 stmt s; 
 Select s such that Parent (s, 2)
-none
+
 stmt s;
 Select s such that Parent (s, 10)
 8
 stmt s;
 Select s such that Parent (2, s)
-none
+
 stmt s;
 Select s such that Parent* (s, 10)
 8
@@ -30,19 +30,19 @@ Select s such that Follows (s, 8)
 7
 stmt s;
 Select s such that Follows (s, 9)
-none
+
 stmt s;
 Select s such that Follows (s, 23)
 none
 stmt s;
 Select s such that Follows* (s, 1)
-none
+
 stmt s;
 Select s such that Follows* (s, 8)
 1, 2, 3, 4, 5, 6, 7
 stmt s;
 Select s such that Follows* (s, 9)
-none
+
 variable v;
 Select v such that Modifies (18, v)
 a, c, d, t

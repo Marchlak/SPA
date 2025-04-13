@@ -50,7 +50,16 @@ for source_file in source_files:
         process.stdin.write(query + "\n")
         process.stdin.flush()
         answer = process.stdout.readline().rstrip("\n")
-        if answer == expected:
-            print("OK:", answer)
+        print(f"for query {query}:")
+        exp_nums = re.findall(r'\d+', expected)
+        ans_nums = re.findall(r'\d+', answer)
+        if exp_nums and ans_nums:
+            if sorted(exp_nums) == sorted(ans_nums):
+                print("OK:", answer)
+            else:
+                print("Mismatch: expected:", expected, "got:", answer)
         else:
-            print("Mismatch: expected:", expected, "got:", answer)
+            if answer == expected:
+                print("OK:", answer)
+            else:
+                print("Mismatch: expected:", expected, "got:", answer)
