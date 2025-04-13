@@ -5,6 +5,7 @@ import subprocess
 import sys
 import time
 
+error_count = 0
 directory = "simple"
 source_files = glob.glob(os.path.join(directory, "source*.txt"))
 source_files.sort()
@@ -41,6 +42,7 @@ for source_file in source_files:
     while i < len(lines):
         if i + 2 >= len(lines):
             print("Test file format error: expected three lines per test case")
+            error_count += 1
             break
         declarations = lines[i]
         query = lines[i+1]
@@ -58,8 +60,13 @@ for source_file in source_files:
                 print("OK:", answer)
             else:
                 print("Mismatch: expected:", expected, "got:", answer)
+                error_count += 1
         else:
             if answer == expected:
                 print("OK:", answer)
             else:
                 print("Mismatch: expected:", expected, "got:", answer)
+                error_count += 1
+if error_count:
+    sys.exit(1)
+sys.exit(0)
