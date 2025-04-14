@@ -142,14 +142,22 @@ public class QueryEvaluator {
     if (isNumeric(right) && synonymsContain(left)) {
       int c = Integer.parseInt(right);
       Set<Integer> parents = pkb.getParentStar(c);
-      for (int p : parents)
-        partialSolutions.get(left).add(String.valueOf(p));
+      if (parents.isEmpty()) {
+        partialSolutions.get(left).add("none");
+      } else {
+        for (int p : parents)
+          partialSolutions.get(left).add(String.valueOf(p));
+      }
     }
     if (isNumeric(left) && synonymsContain(right)) {
       int p = Integer.parseInt(left);
       Set<Integer> descendants = pkb.getParentedStarBy(p);
-      for (int d : descendants)
-        partialSolutions.get(right).add(String.valueOf(d));
+      if (descendants.isEmpty()) {
+        partialSolutions.get(right).add("none");
+      } else {
+        for (int d : descendants)
+          partialSolutions.get(right).add(String.valueOf(d));
+      }
     }
   }
 
