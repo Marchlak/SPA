@@ -30,7 +30,7 @@ Select s such that Follows (s, 8)
 7
 stmt s;
 Select s such that Follows (s, 9)
-
+none
 stmt s;
 Select s such that Follows (s, 23)
 none

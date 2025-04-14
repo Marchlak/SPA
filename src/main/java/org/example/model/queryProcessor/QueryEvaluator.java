@@ -111,7 +111,12 @@ public class QueryEvaluator {
   private void handleParent(String left, String right, Map<String, Set<String>> partialSolutions) {
     if (isNumeric(right) && synonymsContain(left)) {
       int c = Integer.parseInt(right);
-      int p = pkb.getParent(c);
+      Integer i = pkb.getParent(c);
+      if(i == -1){
+        partialSolutions.get(left).add(String.valueOf("none"));
+        return;
+      }
+      int p = (int)i;
       if (p > 0)
         partialSolutions.get(left).add(String.valueOf(p));
     }
@@ -144,7 +149,7 @@ public class QueryEvaluator {
       int r = Integer.parseInt(right);
       Integer i = pkb.getFollowedBy(r);
       if(i == null) {
-        partialSolutions.get(left).add(String.valueOf("None"));
+        partialSolutions.get(left).add(String.valueOf("none"));
         return;
       }
       int f = (int)i;
