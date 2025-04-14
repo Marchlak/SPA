@@ -24,7 +24,9 @@ public class QueryEvaluator {
     synonyms = validator.getSynonyms();
     String[] split = query.split(";");
     String queryToProcess = split[split.length - 1].trim().toUpperCase();
-    return processQuery(queryToProcess);
+    Set<String> result = processQuery(queryToProcess);
+    if(result.isEmpty()) result.add("none");
+    return result;
   }
 
   private Set<String> processQuery(String query) {
@@ -45,7 +47,7 @@ public class QueryEvaluator {
       if (t == RelationshipType.FOLLOWS)
         handleFollows(left, right, partialSolutions);
       if (t == RelationshipType.FOLLOWS_STAR){}
-      //handleFollowsStar(left, right, partialSolutions);
+        handleFollowsStar(left, right, partialSolutions);
       if (t == RelationshipType.USES){}
       //handleUses(left, right, partialSolutions);
       if (t == RelationshipType.MODIFIES){}
@@ -178,6 +180,21 @@ public class QueryEvaluator {
       Integer succ = pkb.getFollows(f);
       if (succ != null)
         partialSolutions.get(right).add(String.valueOf(succ));
+    }
+  }
+
+  private void handleFollowsStar(String left, String right, Map<String, Set<String>> partialSolutions) {
+    if (isNumeric(right) && synonymsContain(left)) {
+      int c = Integer.parseInt(right);
+      Set<Integer> parents = pkb.getFollowedByStar(c);
+      for (int p : parents)
+        partialSolutions.get(left).add(String.valueOf(p));
+    }
+    if (isNumeric(left) && synonymsContain(right)) {
+      int p = Integer.parseInt(left);
+      Set<Integer> descendants = pkb.getFollowsStar(p);
+      for (int d : descendants)
+        partialSolutions.get(right).add(String.valueOf(d));
     }
   }
 
