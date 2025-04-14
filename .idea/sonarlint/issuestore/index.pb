@@ -28,12 +28,6 @@ Asrc/main/java/org/example/model/queryProcessor/SynonymMapper.java,b\d\bd9edee5
 .gitignore,a\5\a5cc2925ca8258af241be7e5b0381edf30266302
 ^
 .src/main/java/org/example/model/ast/TNode.java,1\4\14ec95d590e5c4aa9affc8cb93bd77af4c4ab833
-s
-Csrc/main/java/org/example/model/queryProcessor/DesignExtractor.java,b\1\b128095ca0002c8467b75bab74c1ddcb24cefb53
-g
-7src/main/java/org/example/model/queryProcessor/PKB.java,f\1\f13a915d207c2103dc4c955e562fbca412d3e268
-r
-Bsrc/main/java/org/example/model/queryProcessor/QueryProcessor.java,d\6\d6cf1319affcd85b5e96137ed6baa701606891f1
 r
 Bsrc/main/java/org/example/model/queryProcessor/QueryEvaluator.java,9\9\99d8d9e74050504c32df6fb8bce2ea254c71c46f
 e
@@ -44,3 +38,15 @@ t
 Dsrc/main/java/org/example/model/queryProcessor/RelationshipType.java,b\f\bf5bd780c5964c0aaa4c53edc9f63a1f66ceabc4
 p
 @src/main/java/org/example/model/queryProcessor/Relationship.java,d\a\dab6fd590cb31e631c228c29434ee2ddc2f0fd0e
+g
+7src/main/java/org/example/model/queryProcessor/PKB.java,f\1\f13a915d207c2103dc4c955e562fbca412d3e268
+s
+Csrc/main/java/org/example/model/queryProcessor/DesignExtractor.java,b\1\b128095ca0002c8467b75bab74c1ddcb24cefb53
+9
+	tester.py,3\e\3ece6c32ff7f9014a445ce9b43670415c70ebb39
+n
+>src/main/java/org/example/model/queryProcessor/WithClause.java,d\5\d51c8a10dda483301619e30aa1df9dad8c2a6d06
+g
+7src/test/java/org/example/model/HandbookParserTest.java,b\9\b9cfc6397906b35bc7f7a2a0c7c9c63d82082942
+_
+/src/test/java/org/example/model/ParserTest.java,8\5\8579796cffae282c8b9870fb585fbad8374fb10d

@@ -1,12 +1,17 @@
 
-y
-java:S1450"WRemove the "synonyms" field and declare it as a local variable in the relevant methods.(Ë´£çûÿÿÿÿ8åïµäà2
-T
-java:S1135
-"2Complete the task associated to this TODO comment.(¹ó¿¹ûÿÿÿÿ8æïµäà2
-L	java:S106"+Replace this use of System.err by a logger.(ğğíóúÿÿÿÿ8èïµäà2
-G	java:S106?"+Replace this use of System.out by a logger.(Á·¹õ8ê™ºäà2
-D
-java:S1068"'Remove this unused "pkb" private field.(à¹†ğ8Ïßäà2
-N
-java:S1068",Remove this unused "synonyms" private field.(Ë´£çûÿÿÿÿ8òïµäà2
+L	java:S106"+Replace this use of System.err by a logger.(Â‡şıÿÿÿÿ8Ó§‰­ã2
+E	java:S1081")Either remove or fill this block of code.(ÄøÛŠ8Ö§‰­ã2
+X	java:S1251"<This block of commented-out lines of code should be removed.(ÄøÛŠ8Ö§‰­ã2
+J	java:S1082")Either remove or fill this block of code.(¶ŒÖÌøÿÿÿÿ8Ö§‰­ã2
+]	java:S1252"<This block of commented-out lines of code should be removed.(¶ŒÖÌøÿÿÿÿ8Ö§‰­ã2
+p
+java:S3776‹"RRefactor this method to reduce its Cognitive Complexity from 16 to the 15 allowed.(åŸæÑ8İ§‰­ã2
+u
+java:S3776Æ"RRefactor this method to reduce its Cognitive Complexity from 16 to the 15 allowed.(ÿÓ¹±şÿÿÿÿ8ã§‰­ã2
+u
+java:S3776Ş"RRefactor this method to reduce its Cognitive Complexity from 16 to the 15 allowed.(ãÈÀøÿÿÿÿ8å§‰­ã2
+^	java:S125ú"<This block of commented-out lines of code should be removed.(şÏÛ¸üÿÿÿÿ8é§‰­ã2
+K
+java:S1172À"-Remove this unused method parameter "select".(·Şõ”8ì§‰­ã2
+Q
+java:S1128"4Remove this unused import 'java.util.stream.Stream'.(ó÷”8»Ì‰­ã2

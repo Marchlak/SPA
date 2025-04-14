@@ -2,6 +2,7 @@ package org.example.model.queryProcessor;
 
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class QueryEvaluator {
   private final PKB pkb;
@@ -19,6 +20,7 @@ public class QueryEvaluator {
         throw new IllegalArgumentException();
       }
     } catch (IllegalArgumentException e) {
+      System.err.println("#kurwa");
       return Collections.emptySet();
     }
     synonyms = validator.getSynonyms();
@@ -36,22 +38,17 @@ public class QueryEvaluator {
       RelationshipType t = r.getType();
       String left = r.getFirstArg();
       String right = r.getSecondArg();
-      if (t == RelationshipType.CALLS)
-        handleCalls(left, right, partialSolutions);
-      else if (t == RelationshipType.CALLS_STAR)
-        handleCallsStar(left, right, partialSolutions);
-      if (t == RelationshipType.PARENT)
-        handleParent(left, right, partialSolutions);
-      if (t == RelationshipType.PARENT_STAR)
-        handleParentStar(left, right, partialSolutions);
-      if (t == RelationshipType.FOLLOWS)
-        handleFollows(left, right, partialSolutions);
-      if (t == RelationshipType.FOLLOWS_STAR){}
-        handleFollowsStar(left, right, partialSolutions);
-      if (t == RelationshipType.USES){}
-      //handleUses(left, right, partialSolutions);
-      if (t == RelationshipType.MODIFIES){}
-      //handleModifies(left, right, partialSolutions);
+
+      switch (t) {
+        case CALLS -> handleCalls(left, right, partialSolutions);
+        case CALLS_STAR -> handleCallsStar(left, right, partialSolutions);
+        case PARENT -> handleParent(left, right, partialSolutions);
+        case PARENT_STAR -> handleParentStar(left, right, partialSolutions);
+        case FOLLOWS -> handleFollows(left, right, partialSolutions);
+        case FOLLOWS_STAR -> handleFollowsStar(left, right, partialSolutions);
+        case USES -> {} //handleUses(left, right, partialSolutions);
+        case MODIFIES -> {} //handleModifies(left, right, partialSolutions);
+      }
     }
     return finalizeResult(query, partialSolutions);
   }
@@ -120,10 +117,10 @@ public class QueryEvaluator {
       int c = Integer.parseInt(right);
       Integer i = pkb.getParent(c);
       if(i == -1){
-        partialSolutions.get(left).add(String.valueOf("none"));
+        partialSolutions.get(left).add("none");
         return;
       }
-      int p = (int)i;
+      int p = i;
       if (p > 0)
         partialSolutions.get(left).add(String.valueOf(p));
     }
@@ -168,10 +165,10 @@ public class QueryEvaluator {
       int r = Integer.parseInt(right);
       Integer i = pkb.getFollowedBy(r);
       if(i == null) {
-        partialSolutions.get(left).add(String.valueOf("none"));
+        partialSolutions.get(left).add("none");
         return;
       }
-      int f = (int)i;
+      int f = i;
       if (f > 0)
         partialSolutions.get(left).add(String.valueOf(f));
     }
@@ -293,7 +290,14 @@ public class QueryEvaluator {
     if (synonymsContain(selectPart)) {
       result.addAll(partialSolutions.get(selectPart));
     }
-    return result.stream().filter(s -> !s.isBlank()).collect(Collectors.toSet());
+
+    result = result.stream().filter(s -> !s.isBlank()).collect(Collectors.toSet());
+
+    if (query.contains("WITH")) {
+      result = handleWith(result, query, selectPart);
+    }
+
+    return result;
   }
 
   private boolean synonymsContain(String s) {
@@ -312,4 +316,36 @@ public class QueryEvaluator {
       return false;
     }
   }
+
+  private Set<String> handleWith(Set<String> partialResult, String query, String select) {
+    String[] split = query.split("WITH");
+    List<WithClause> withClauses = new ArrayList<>();
+    for (int i = 1; i < split.length; i++) {
+      String clause = split[i].split("SUCH THAT|AND|SELECT")[0].trim();
+      String[] parts = clause.split("=");
+      if (parts.length == 2) {
+        withClauses.add(new WithClause(parts[0].trim(), parts[1].trim()));
+      }
+    }
+
+    for (WithClause w : withClauses) {
+      partialResult = applyWithClause(partialResult, w);
+    }
+
+   return partialResult;
+  }
+
+  private Set<String> applyWithClause(Set<String> partialResult, WithClause clause) {
+    String attributeType = clause.left().split("\\.")[1];
+    return switch (attributeType) {
+      case "STMT#" -> applyStmtNumber(partialResult, clause);
+      case "PROCNAME", "VARNAME", "VALUE" -> Set.of("");
+      default -> throw new IllegalStateException("Unexpected value: " + attributeType);
+    };
+  }
+
+  private Set<String> applyStmtNumber(Set<String> partialResult, WithClause clause) {
+    return partialResult.stream().filter(x -> x.equals(clause.right())).collect(Collectors.toSet());
+  }
+
 }

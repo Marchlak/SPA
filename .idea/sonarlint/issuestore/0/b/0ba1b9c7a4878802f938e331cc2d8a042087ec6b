@@ -1,19 +1,13 @@
 
-L	java:S106"+Replace this use of System.out by a logger.(ÁúÚ—øÿÿÿÿ8¾ÆœŞà2
-G	java:S106"+Replace this use of System.out by a logger.(Óìñ¦8¿ÆœŞà2
-G	java:S106"+Replace this use of System.out by a logger.(äıÇÂ8¿ÆœŞà2
-L	java:S106"+Replace this use of System.out by a logger.(ƒÇãˆúÿÿÿÿ8¿ÆœŞà2
-G	java:S106"+Replace this use of System.out by a logger.(¸˜Ãí8¿ÆœŞà2
-G	java:S106 "+Replace this use of System.out by a logger.(ë¹Å8ÀÆœŞà2
-G	java:S106!"+Replace this use of System.out by a logger.(¿ûƒÿ8ÀÆœŞà2
-L	java:S106#"+Replace this use of System.out by a logger.(ƒÇãˆúÿÿÿÿ8ÀÆœŞà2
-G	java:S106%"+Replace this use of System.out by a logger.(™üÁÄ8ÀÆœŞà2
-L	java:S106&"+Replace this use of System.out by a logger.(ßĞ¾†üÿÿÿÿ8ÁÆœŞà2
-L	java:S106'"+Replace this use of System.out by a logger.(ñÃÄ¯øÿÿÿÿ8ÁÆœŞà2
-L	java:S106)"+Replace this use of System.out by a logger.(ƒÇãˆúÿÿÿÿ8ÁÆœŞà2
-L	java:S106*"+Replace this use of System.out by a logger.(ğ¨’ªıÿÿÿÿ8ÂÆœŞà2
-L	java:S106+"+Replace this use of System.out by a logger.(ÕŠÎ¯ÿÿÿÿÿ8ÂÆœŞà2
-G	java:S106-"+Replace this use of System.out by a logger.(©Ïé¢8ÂÆœŞà2
-L	java:S106/"+Replace this use of System.out by a logger.(ƒÇãˆúÿÿÿÿ8¦«½Şà2
-L	java:S1061"+Replace this use of System.out by a logger.(ÉŠÃÆøÿÿÿÿ8¦«½Şà2
-L	java:S1062"+Replace this use of System.out by a logger.(Óˆ´†ûÿÿÿÿ8”ŠÁŞà2
+z	java:S135+"YReduce the total number of break and continue statements in this loop to use at most one.(˜ïˆÿÿÿÿÿ8Ü¨¬ã2
+T
+java:S1135"2Complete the task associated to this TODO comment.(€«ãŸüÿÿÿÿ8•Ü¨¬ã2
+]	java:S125"<This block of commented-out lines of code should be removed.(£‰õşÿÿÿÿ8“ƒ‹­ã2
+G	java:S106"+Replace this use of System.out by a logger.(©ÒÇ¤8—Ü¨¬ã2
+G	java:S106#"+Replace this use of System.out by a logger.(ØŸ»è8œÜ¨¬ã2
+X	java:S125&"<This block of commented-out lines of code should be removed.(áï®²8Ü¨¬ã2
+L	java:S1062"+Replace this use of System.out by a logger.(®ıáëûÿÿÿÿ8ŸÜ¨¬ã2
+G	java:S1065"+Replace this use of System.out by a logger.(ÚÅ«ä8ŸÜ¨¬ã2
+G	java:S106E"+Replace this use of System.out by a logger.(£ÎıÇ8¬¹ª¬ã2
+M
+java:S11449"+Remove this unused private "lololo" method.(²æÚ†üÿÿÿÿ8ƒ‹­ã2
