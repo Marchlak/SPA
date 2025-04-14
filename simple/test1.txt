@@ -9,13 +9,13 @@ Select s1 such that Parent* (s1, 10)
 8
 stmt s; 
 Select s such that Parent (s, 2)
-
+none
 stmt s;
 Select s such that Parent (s, 10)
 8
 stmt s;
-Select s such that Parent (2, s)
-
+Select s such that Parent (8, s)
+none
 stmt s;
 Select s such that Parent* (s, 10)
 8

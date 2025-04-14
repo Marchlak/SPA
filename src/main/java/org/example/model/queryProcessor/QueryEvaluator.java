@@ -87,7 +87,12 @@ public class QueryEvaluator {
 
   private List<Relationship> extractRelationship(String query, RelationshipType type) {
     List<Relationship> relationships = new ArrayList<>();
-    String[] split = query.split("\\b" + type.getType() + "\\b");
+    String regex = type.getType().endsWith("\\*")
+            ? type.getType()
+            : "\\b" + type.getType() + "\\b";
+
+    String[] split = query.split(regex);
+
     for (int i = 1; i < split.length; i++) {
       relationships.add(new Relationship(type, extractRelationshipArgs(split[i])));
     }
@@ -123,8 +128,12 @@ public class QueryEvaluator {
     if (isNumeric(left) && synonymsContain(right)) {
       int p = Integer.parseInt(left);
       Set<Integer> kids = pkb.getParentedBy(p);
-      for (int k : kids)
-        partialSolutions.get(right).add(String.valueOf(k));
+      if (kids.isEmpty()) {
+        partialSolutions.get(right).add("none");
+      }else {
+        for (int k : kids)
+          partialSolutions.get(right).add(String.valueOf(k));
+      }
     }
   }
 
