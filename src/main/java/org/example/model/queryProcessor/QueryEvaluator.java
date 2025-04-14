@@ -142,7 +142,12 @@ public class QueryEvaluator {
   private void handleFollows(String left, String right, Map<String, Set<String>> partialSolutions) {
     if (isNumeric(right) && synonymsContain(left)) {
       int r = Integer.parseInt(right);
-      int f = pkb.getFollowedBy(r);
+      Integer i = pkb.getFollowedBy(r);
+      if(i == null) {
+        partialSolutions.get(left).add(String.valueOf("None"));
+        return;
+      }
+      int f = (int)i;
       if (f > 0)
         partialSolutions.get(left).add(String.valueOf(f));
     }
