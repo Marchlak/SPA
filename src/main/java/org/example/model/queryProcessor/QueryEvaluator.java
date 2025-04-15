@@ -20,7 +20,7 @@ public class QueryEvaluator {
         throw new IllegalArgumentException();
       }
     } catch (IllegalArgumentException e) {
-      System.err.println("#kurwa");
+      System.out.println("#Query is not valid");
       return Collections.emptySet();
     }
     synonyms = validator.getSynonyms();
