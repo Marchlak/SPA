@@ -125,6 +125,8 @@ public class DesignExtractor {
             pkb.setCalls(currentProcedure, calledProc);
         }
 
+        pkb.setCallStmt(stmtNumber, calledProc);
+
         if (!pkb.getCallsMap().containsKey(calledProc)) {
             pkb.addProcedure(calledProc);
         }

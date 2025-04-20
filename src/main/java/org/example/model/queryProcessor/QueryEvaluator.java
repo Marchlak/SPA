@@ -262,15 +262,71 @@ public class QueryEvaluator {
 //    }
 //  }
 //
-//  private void handleUses(String left, String right, Map<String, Set<String>> partialSolutions) {
-//    if (isNumeric(left) && synonymsContain(right)) {
-//      int stmt = Integer.parseInt(left);
-//      Set<String> usedVars = pkb.getUsedByStmt(stmt);
-//      partialSolutions.get(right).addAll(usedVars);
-//    }
-//    if (!isNumeric(left) && synonymsContain(left) && right.startsWith("\"") && right.endsWith("\"")) {
-//    }
-//  }
+private void handleUses(String left, String right, Map<String, Set<String>> partialSolutions) {
+  // Przypadek 1: Uses(s, "x") — synonim instrukcji, znana zmienna
+  if (synonymsContain(left) && isStringLiteral(right)) {
+    String var = right.replace("\"", "");
+    for (int stmt : pkb.getAllStmts()) {
+      if (pkb.getUsedByStmt(stmt).contains(var)) {
+        partialSolutions.get(left).add(String.valueOf(stmt));
+      }
+    }
+  }
+
+  // Przypadek 2: Uses(5, v) — znana liczba (stmt), zmienna jako synonim
+  if (isNumeric(left) && synonymsContain(right)) {
+    int stmt = Integer.parseInt(left);
+    Set<String> usedVars = pkb.getUsedByStmt(stmt);
+    if (usedVars.isEmpty()) {
+      partialSolutions.get(right).add("none");
+    } else {
+      partialSolutions.get(right).addAll(usedVars);
+    }
+  }
+
+  // Przypadek 3: Uses("main", v) — znana procedura, zmienna jako synonim
+  if (isStringLiteral(left) && synonymsContain(right)) {
+    String proc = left.replace("\"", "");
+    Set<String> vars = pkb.getUsedByProc(proc);
+    if (vars.isEmpty()) {
+      partialSolutions.get(right).add("none");
+    } else {
+      partialSolutions.get(right).addAll(vars);
+    }
+  }
+
+  // Przypadek 4: Uses(p, v) — p jako synonim procedury, v jako synonim zmiennej
+  if (!isNumeric(left) && synonymsContain(left) && synonymsContain(right)) {
+    for (String proc : pkb.getAllProcedures()) {
+      Set<String> usedVars = pkb.getUsedByProc(proc);
+      for (String var : usedVars) {
+        partialSolutions.get(left).add(proc);
+        partialSolutions.get(right).add(var);
+      }
+    }
+  }
+
+  // Przypadek 5: Uses(s, v) — s jako synonim instrukcji (np. call stmt), v jako synonim zmiennej
+  if (synonymsContain(left) && synonymsContain(right)) {
+    for (int stmt : pkb.getAllStmts()) {
+      Set<String> vars = pkb.getUsedByStmt(stmt);
+      for (String var : vars) {
+        partialSolutions.get(left).add(String.valueOf(stmt));
+        partialSolutions.get(right).add(var);
+      }
+    }
+  }
+
+  // Przypadek 6: Uses(p, "x") — procedura jako synonim, zmienna znana
+  if (synonymsContain(left) && isStringLiteral(right)) {
+    String var = right.replace("\"", "");
+    for (String proc : pkb.getAllProcedures()) {
+      if (pkb.getUsedByProc(proc).contains(var)) {
+        partialSolutions.get(left).add(proc);
+      }
+    }
+  }
+}
 //
 //  private void handleModifies(String left, String right, Map<String, Set<String>> partialSolutions) {
 //    if (isNumeric(left) && synonymsContain(right)) {

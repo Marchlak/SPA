@@ -27,6 +27,20 @@ public class PKB {
     private final Map<String, Set<String>> callsMap = new HashMap<>();
     private final Map<String, Set<String>> callsStarCache = new HashMap<>();
 
+    private final Map<Integer, String> callStmtToProc = new HashMap<>();
+
+    public void setCallStmt(int stmt, String proc) {
+        callStmtToProc.put(stmt, proc);
+    }
+
+    public String getCalledProcByStmt(int stmt) {
+        return callStmtToProc.get(stmt);
+    }
+
+    public EntityType getStmtType(int stmt) {
+        return stmtTypeMap.get(stmt);
+    }
+
     public void setParent(int parent, int child) {
         parentMap.put(child, parent);
         childrenMap.computeIfAbsent(parent, k -> new HashSet<>()).add(child);
@@ -283,5 +297,13 @@ public void printState() {
 
     public Map<String, Set<String>> getCallsMap() {
         return new HashMap<>(callsMap);
+    }
+
+    public Set<Integer> getAllStmts() {
+        return stmtTypeMap.keySet();
+    }
+
+    public Set<String> getAllProcedures() {
+        return new HashSet<>(procedures);
     }
 }
