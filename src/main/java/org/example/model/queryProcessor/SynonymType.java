@@ -4,6 +4,8 @@ enum SynonymType {
     STMT("STMT"),
     ASSIGN("ASSIGN"),
     WHILE("WHILE"),
+    CALL("CALL"),
+    IF("IF"),
     VARIABLE("VARIABLE"),
     CONSTANT("CONSTANT"),
     PROG_LINE("PROG_LINE"),

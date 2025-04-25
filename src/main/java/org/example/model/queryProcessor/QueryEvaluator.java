@@ -1,5 +1,9 @@
 package org.example.model.queryProcessor;
 
+import org.example.model.enums.EntityType;
+import org.example.model.queryProcessor.Synonym;
+import org.example.model.queryProcessor.SynonymType;
+
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -182,47 +186,54 @@ public class QueryEvaluator {
 
   private void handleModifies(String left,
                               String right,
-                              Map<String, Set<String>> partialSolutions) {
+                              Map<String, Set<String>> partial) {
 
-    if (synonymsContain(left) && isStringLiteral(right)) {
-      String var = right.replace("\"", "");
+    boolean leftIsNum  = isNumeric(left);
+    boolean rightIsNum = isNumeric(right);
+
+    boolean leftIsLit  = isStringLiteral(left);
+    boolean rightIsLit = isStringLiteral(right);
+
+    boolean rightIsBareLit = !rightIsNum && !synonymsContain(right) && !rightIsLit;
+    boolean leftIsBareLit  = !leftIsNum  && !synonymsContain(left)  && !leftIsLit;
+
+    String rightLit = rightIsLit ? right.replace("\"", "")
+            : rightIsBareLit ? right
+            : null;
+
+    String leftLit  = leftIsLit  ? left.replace("\"", "")
+            : leftIsBareLit  ? left
+            : null;
+
+    if (synonymsContain(left) && rightLit != null) {
       for (int stmt : pkb.getAllStmts()) {
-        if (pkb.getModifiedByStmt(stmt).contains(var)) {
-          partialSolutions.get(left).add(String.valueOf(stmt));
+        if (pkb.getModifiedByStmt(stmt).stream()
+                .anyMatch(v -> v.equalsIgnoreCase(rightLit))) {
+          partial.get(left).add(String.valueOf(stmt));
         }
       }
       for (String proc : pkb.getAllProcedures()) {
-        if (pkb.getModifiedByProc(proc).contains(var)) {
-          partialSolutions.get(left).add(proc);
+        if (pkb.getModifiedByProc(proc).stream()
+                .anyMatch(v -> v.equalsIgnoreCase(rightLit))) {
+          partial.get(left).add(proc);
         }
       }
+      return;
     }
 
-    if (isNumeric(left) && synonymsContain(right)) {
-      int stmt = Integer.parseInt(left);
-      Set<String> vars = pkb.getModifiedByStmt(stmt);
-      if (vars.isEmpty()) {
-        partialSolutions.get(right).add("none");
-      } else {
-        partialSolutions.get(right).addAll(vars);
-      }
+    if (leftIsNum && synonymsContain(right)) {
+      partial.get(right).addAll(pkb.getModifiedByStmt(Integer.parseInt(left)));
     }
 
-    if (isStringLiteral(left) && synonymsContain(right)) {
-      String proc = left.replace("\"", "");
-      Set<String> vars = pkb.getModifiedByProc(proc);
-      if (vars.isEmpty()) {
-        partialSolutions.get(right).add("none");
-      } else {
-        partialSolutions.get(right).addAll(vars);
-      }
+    if (leftLit != null && synonymsContain(right)) {
+      partial.get(right).addAll(pkb.getModifiedByProc(leftLit));
     }
 
-    if (!isNumeric(left) && synonymsContain(left) && synonymsContain(right)) {
+    if (!leftIsNum && synonymsContain(left) && synonymsContain(right)) {
       for (String proc : pkb.getAllProcedures()) {
         for (String var : pkb.getModifiedByProc(proc)) {
-          partialSolutions.get(left).add(proc);
-          partialSolutions.get(right).add(var);
+          partial.get(left).add(proc);
+          partial.get(right).add(var);
         }
       }
     }
@@ -230,17 +241,17 @@ public class QueryEvaluator {
     if (synonymsContain(left) && synonymsContain(right)) {
       for (int stmt : pkb.getAllStmts()) {
         for (String var : pkb.getModifiedByStmt(stmt)) {
-          partialSolutions.get(left).add(String.valueOf(stmt));
-          partialSolutions.get(right).add(var);
+          partial.get(left).add(String.valueOf(stmt));
+          partial.get(right).add(var);
         }
       }
     }
 
-    if (synonymsContain(left) && isStringLiteral(right)) {
-      String var = right.replace("\"", "");
+    if (synonymsContain(left) && rightLit != null) {
       for (String proc : pkb.getAllProcedures()) {
-        if (pkb.getModifiedByProc(proc).contains(var)) {
-          partialSolutions.get(left).add(proc);
+        if (pkb.getModifiedByProc(proc).stream()
+                .anyMatch(v -> v.equalsIgnoreCase(rightLit))) {
+          partial.get(left).add(proc);
         }
       }
     }
@@ -405,22 +416,75 @@ private void handleUses(String left, String right, Map<String, Set<String>> part
 //  }
 
   private Set<String> finalizeResult(String query, Map<String, Set<String>> partialSolutions) {
-    String selectPart = query.split("SELECT")[1].trim().split("SUCH THAT|WITH")[0].trim();
-    if (selectPart.contains(" "))
-      selectPart = selectPart.split(" ")[0];
-    Set<String> result = new HashSet<>();
-    if (synonymsContain(selectPart)) {
-      result.addAll(partialSolutions.get(selectPart));
+    String selectSyn = query.split("SELECT")[1]
+            .trim()
+            .split("SUCH THAT|WITH")[0]
+            .trim();
+    if (selectSyn.contains(" ")) {
+      selectSyn = selectSyn.split("\\s+")[0];
     }
 
-    result = result.stream().filter(s -> !s.isBlank()).collect(Collectors.toSet());
+    Set<String> initial = partialSolutions.getOrDefault(selectSyn, Collections.emptySet());
 
-    if (query.contains("WITH")) {
-      result = handleWith(result, query, selectPart);
+    Set<String> filtered = initial.stream()
+            .filter(s -> !s.isBlank() && !"none".equalsIgnoreCase(s))
+            .collect(Collectors.toSet());
+
+    final String selName = selectSyn;   // effectively-final
+    Synonym sel = synonyms.stream()
+            .filter(syn -> syn.name().equalsIgnoreCase(selName))
+            .findFirst()
+            .orElse(null);
+
+    if (sel != null) {
+      SynonymType st = sel.type();
+      EntityType wanted = null;
+      switch (st) {
+        case ASSIGN -> wanted = EntityType.ASSIGN;
+        case WHILE  -> wanted = EntityType.WHILE;
+        case IF     -> wanted = EntityType.IF;
+        case CALL   -> wanted = EntityType.CALL;
+        default     -> wanted = null;
+      }
+      if (wanted != null) {
+        EntityType filterType = wanted;
+        filtered = filtered.stream()
+                .filter(s -> {
+                  try {
+                    int num = Integer.parseInt(s);
+                    return pkb.getStmtType(num) == filterType;
+                  } catch (Exception ex) {
+                    return false;
+                  }
+                })
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+      }
     }
 
-    return result;
+    List<String> sorted = new ArrayList<>(filtered);
+    sorted.sort((a, b) -> {
+      try {
+        return Integer.compare(Integer.parseInt(a), Integer.parseInt(b));
+      } catch (NumberFormatException e) {
+        return a.compareTo(b);
+      }
+    });
+
+    if (sorted.isEmpty()) {
+      return Set.of("none");
+    }
+    return new LinkedHashSet<>(sorted);
   }
+
+
+
+
+
+
+
+
+
+
 
   private boolean synonymsContain(String s) {
     for (Synonym syn : synonyms) {

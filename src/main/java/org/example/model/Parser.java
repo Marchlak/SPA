@@ -3,7 +3,6 @@ package org.example.model;
 import org.example.model.ast.TNode;
 import org.example.model.enums.EntityType;
 import org.example.model.enums.TokenType;
-
 import java.util.List;
 
 public class Parser {

@@ -163,6 +163,8 @@ public class PKB {
         return usesProc.getOrDefault(proc, new HashSet<>());
     }
 
+    public Set<Integer> getAllCallStmts() { return new HashSet<>(callStmtToProc.keySet()); }
+
     public void propagateUsesToParent(int stmt, String var) {
         int current = stmt;
         while (parentMap.containsKey(current)) {

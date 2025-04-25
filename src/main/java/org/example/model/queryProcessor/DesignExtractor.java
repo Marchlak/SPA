@@ -25,6 +25,7 @@ public class DesignExtractor {
             processProcedure(proc);
             proc = proc.getRightSibling();
         }
+        propagateCallModifies();
     }
 
     private void processProcedure(TNode procNode) {
@@ -223,6 +224,16 @@ public class DesignExtractor {
     private Set<String> extractVariablesFromCond(TNode condNode) {
         // For simplicity, assuming conditions are similar to expressions
         return extractVariablesFromExpr(condNode);
+    }
+
+    private void propagateCallModifies() {
+        for (Integer stmt : pkb.getAllCallStmts()) {
+            String proc = pkb.getCalledProcByStmt(stmt);
+            for (String var : pkb.getModifiedByProc(proc)) {
+                pkb.setModifiesStmt(stmt, var);
+                pkb.propagateModifiesToParent(stmt, var);
+            }
+        }
     }
 
 
