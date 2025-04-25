@@ -40,6 +40,7 @@ public class QueryEvaluator {
       String right = r.getSecondArg();
 
       switch (t) {
+        case MODIFIES -> handleModifies(left, right, partialSolutions);
         case CALLS -> handleCalls(left, right, partialSolutions);
         case CALLS_STAR -> handleCallsStar(left, right, partialSolutions);
         case PARENT -> handleParent(left, right, partialSolutions);
@@ -47,7 +48,6 @@ public class QueryEvaluator {
         case FOLLOWS -> handleFollows(left, right, partialSolutions);
         case FOLLOWS_STAR -> handleFollowsStar(left, right, partialSolutions);
         case USES -> {} //handleUses(left, right, partialSolutions);
-        case MODIFIES -> {} //handleModifies(left, right, partialSolutions);
       }
     }
     return finalizeResult(query, partialSolutions);
@@ -177,6 +177,72 @@ public class QueryEvaluator {
       Integer succ = pkb.getFollows(f);
       if (succ != null)
         partialSolutions.get(right).add(String.valueOf(succ));
+    }
+  }
+
+  private void handleModifies(String left,
+                              String right,
+                              Map<String, Set<String>> partialSolutions) {
+
+    if (synonymsContain(left) && isStringLiteral(right)) {
+      String var = right.replace("\"", "");
+      for (int stmt : pkb.getAllStmts()) {
+        if (pkb.getModifiedByStmt(stmt).contains(var)) {
+          partialSolutions.get(left).add(String.valueOf(stmt));
+        }
+      }
+      for (String proc : pkb.getAllProcedures()) {
+        if (pkb.getModifiedByProc(proc).contains(var)) {
+          partialSolutions.get(left).add(proc);
+        }
+      }
+    }
+
+    if (isNumeric(left) && synonymsContain(right)) {
+      int stmt = Integer.parseInt(left);
+      Set<String> vars = pkb.getModifiedByStmt(stmt);
+      if (vars.isEmpty()) {
+        partialSolutions.get(right).add("none");
+      } else {
+        partialSolutions.get(right).addAll(vars);
+      }
+    }
+
+    if (isStringLiteral(left) && synonymsContain(right)) {
+      String proc = left.replace("\"", "");
+      Set<String> vars = pkb.getModifiedByProc(proc);
+      if (vars.isEmpty()) {
+        partialSolutions.get(right).add("none");
+      } else {
+        partialSolutions.get(right).addAll(vars);
+      }
+    }
+
+    if (!isNumeric(left) && synonymsContain(left) && synonymsContain(right)) {
+      for (String proc : pkb.getAllProcedures()) {
+        for (String var : pkb.getModifiedByProc(proc)) {
+          partialSolutions.get(left).add(proc);
+          partialSolutions.get(right).add(var);
+        }
+      }
+    }
+
+    if (synonymsContain(left) && synonymsContain(right)) {
+      for (int stmt : pkb.getAllStmts()) {
+        for (String var : pkb.getModifiedByStmt(stmt)) {
+          partialSolutions.get(left).add(String.valueOf(stmt));
+          partialSolutions.get(right).add(var);
+        }
+      }
+    }
+
+    if (synonymsContain(left) && isStringLiteral(right)) {
+      String var = right.replace("\"", "");
+      for (String proc : pkb.getAllProcedures()) {
+        if (pkb.getModifiedByProc(proc).contains(var)) {
+          partialSolutions.get(left).add(proc);
+        }
+      }
     }
   }
 
