@@ -81,6 +81,9 @@ public class DesignExtractor {
         if (currentProcedure != null) {
             pkb.setModifiesProc(currentProcedure, varName);
         }
+        if (!parentStack.isEmpty()) {
+            pkb.propagateModifiesToParent(stmtNumber, varName);
+        }
 
         // Handle Uses (right side)
         TNode exprNode = varNode.getRightSibling();
@@ -138,6 +141,9 @@ public class DesignExtractor {
         modifies.forEach(var -> {
             pkb.setModifiesProc(currentProcedure, var);
             pkb.setModifiesStmt(stmtNumber, var);
+            if (!parentStack.isEmpty()) {
+                pkb.propagateModifiesToParent(stmtNumber, var);
+            }
         });
 
         Set<String> uses = pkb.getUsedByProc(calledProc);

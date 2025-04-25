@@ -134,7 +134,7 @@ public class RelationshipTest {
                         "procedura foo powinna modyfikować a")
         );
     }
-    
+
 }
 
 

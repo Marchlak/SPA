@@ -171,6 +171,14 @@ public class PKB {
         }
     }
 
+    public void propagateModifiesToParent(int stmt, String var) {
+        int current = stmt;
+        while (parentMap.containsKey(current)) {
+            current = parentMap.get(current);
+            setModifiesStmt(current, var);
+        }
+    }
+
     public void addStmt(int stmtNumber, EntityType type) {
         stmtTypeMap.put(stmtNumber, type);
     }
