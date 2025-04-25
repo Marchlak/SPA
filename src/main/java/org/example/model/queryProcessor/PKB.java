@@ -23,6 +23,7 @@ public class PKB {
 
     private final Map<Integer, EntityType> stmtTypeMap = new HashMap<>();
     private final Set<String> procedures = new HashSet<>();
+    private final Set<String> variables = new HashSet<>();
 
     private final Map<String, Set<String>> callsMap = new HashMap<>();
     private final Map<String, Set<String>> callsStarCache = new HashMap<>();
@@ -178,6 +179,10 @@ public class PKB {
         procedures.add(procName);
     }
 
+    public void addVariable(String varName) {
+        variables.add(varName);
+    }
+
 
 public void printState() {
     System.out.println("=== PKB State ===");
@@ -305,5 +310,8 @@ public void printState() {
 
     public Set<String> getAllProcedures() {
         return new HashSet<>(procedures);
+    }
+    public Set<String> getAllVariables() {
+        return new HashSet<>(variables);
     }
 }

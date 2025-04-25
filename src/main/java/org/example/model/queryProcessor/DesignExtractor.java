@@ -76,6 +76,7 @@ public class DesignExtractor {
         // Handle Modifies (left side)
         TNode varNode = assignNode.getFirstChild();
         String varName = varNode.getAttr();
+        pkb.addVariable(varName);
         pkb.setModifiesStmt(stmtNumber, varName);
         if (currentProcedure != null) {
             pkb.setModifiesProc(currentProcedure, varName);
@@ -85,6 +86,7 @@ public class DesignExtractor {
         TNode exprNode = varNode.getRightSibling();
         Set<String> usedVars = extractVariablesFromNode(exprNode);
         for (String usedVar : usedVars) {
+            pkb.addVariable(usedVar);
             pkb.setUsesStmt(stmtNumber, usedVar);
             if (currentProcedure != null) {
                 pkb.setUsesProc(currentProcedure, usedVar);
@@ -101,6 +103,7 @@ public class DesignExtractor {
         TNode cond = whileNode.getFirstChild();
         Set<String> condVars = extractVariablesFromNode(cond);
         for (String var : condVars) {
+            pkb.addVariable(var);
             pkb.setUsesStmt(stmtNumber, var);
             if (currentProcedure != null) {
                 pkb.setUsesProc(currentProcedure, var);
@@ -151,6 +154,7 @@ public class DesignExtractor {
         TNode cond = ifNode.getFirstChild();
         Set<String> condVars = extractVariablesFromCond(cond);
         for (String var : condVars) {
+            pkb.addVariable(var);
             pkb.setUsesStmt(stmtNumber, var);
             if (currentProcedure != null) {
                 pkb.setUsesProc(currentProcedure, var);
