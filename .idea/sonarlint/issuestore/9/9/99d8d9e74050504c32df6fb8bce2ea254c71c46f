@@ -1,17 +1,30 @@
 
-G	java:S106"+Replace this use of System.out by a logger.(Î»‚8ş»ÚÄã2
-E	java:S1081")Either remove or fill this block of code.(ÄøÛŠ8Ö§‰­ã2
-X	java:S1251"<This block of commented-out lines of code should be removed.(ÄøÛŠ8Ö§‰­ã2
+G	java:S106"+Replace this use of System.out by a logger.(Î»‚8É²µïæ2
+E	java:S1081")Either remove or fill this block of code.(ÄøÛŠ8Ï®¯ïæ2
+X	java:S1251"<This block of commented-out lines of code should be removed.(ÄøÛŠ8Ğ®¯ïæ2
 J	java:S1082")Either remove or fill this block of code.(¶ŒÖÌøÿÿÿÿ8Ö§‰­ã2
 ]	java:S1252"<This block of commented-out lines of code should be removed.(¶ŒÖÌøÿÿÿÿ8Ö§‰­ã2
 p
-java:S3776‹"RRefactor this method to reduce its Cognitive Complexity from 16 to the 15 allowed.(åŸæÑ8İ§‰­ã2
+java:S3776‹"RRefactor this method to reduce its Cognitive Complexity from 16 to the 15 allowed.(åŸæÑ8Ş®¯ïæ2
 u
-java:S3776Æ"RRefactor this method to reduce its Cognitive Complexity from 16 to the 15 allowed.(ÿÓ¹±şÿÿÿÿ8ã§‰­ã2
+java:S3776Æ"RRefactor this method to reduce its Cognitive Complexity from 16 to the 15 allowed.(ÿÓ¹±şÿÿÿÿ8ç®¯ïæ2
 u
-java:S3776Ş"RRefactor this method to reduce its Cognitive Complexity from 16 to the 15 allowed.(ãÈÀøÿÿÿÿ8å§‰­ã2
-^	java:S125ú"<This block of commented-out lines of code should be removed.(şÏÛ¸üÿÿÿÿ8é§‰­ã2
+java:S3776Ş"RRefactor this method to reduce its Cognitive Complexity from 16 to the 15 allowed.(ãÈÀøÿÿÿÿ8ë®¯ïæ2
+o
+java:S3776‰"RRefactor this method to reduce its Cognitive Complexity from 38 to the 15 allowed.(ßèñ68ğ®¯ïæ2
+^	java:S125ú"<This block of commented-out lines of code should be removed.(şÏÛ¸üÿÿÿÿ8ò®¯ïæ2
+X
+java:S6213Œ":Rename this variable to not match a restricted identifier.(ÒÏ—Æ8ó®¯ïæ2
+]
+java:S6213®":Rename this variable to not match a restricted identifier.(½„£ıÿÿÿÿ8ø®¯ïæ2
+W
+java:S6213¹":Rename this variable to not match a restricted identifier.(–Ìe8ù®¯ïæ2
+X
+java:S6213Â":Rename this variable to not match a restricted identifier.(ÒÏ—Æ8ú®¯ïæ2
+Y	java:S125Ë"<This block of commented-out lines of code should be removed.(†°Â­8ü®¯ïæ2
 K
-java:S1172À"-Remove this unused method parameter "select".(·Şõ”8ì§‰­ã2
+java:S1172ø"-Remove this unused method parameter "select".(·Şõ”8‚¯¯ïæ2
 Q
-java:S1128"4Remove this unused import 'java.util.stream.Stream'.(ó÷”8¹åÙÄã2
+java:S1128"4Remove this unused import 'java.util.stream.Stream'.(ó÷”8›³µïæ2
+L
+java:S1144‰"/Remove this unused private "handleUses" method.(ßèñ68‰¯¯ïæ2

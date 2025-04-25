@@ -65,7 +65,7 @@ public class Main {
         designExtractor.extract(ast);
         QueryEvaluator queryEvaluator = new QueryEvaluator(pkb);
         String declarations = "stmt a;";
-        String query = "select a such that Parent (8, a) with a.stmt# = 13";
+        String query = "select a such that Follows* (a, 4) with a.stmt# = 1"; //   Parent (8, a) and
         System.out.println(queryEvaluator.evaluateQuery(declarations + query));
 
     }

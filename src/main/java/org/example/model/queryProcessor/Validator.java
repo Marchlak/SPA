@@ -20,7 +20,6 @@ class Validator {
         } catch (Exception e) {
             return false;
         }
-
         return query.matches(queryPattern);
     }
 
@@ -55,7 +54,7 @@ class Validator {
                 getSynonymsPattern() +
                 "|BOOLEAN)(\\s?,\\s?(" +
                 getSynonymsPattern() +
-                "|BOOLEAN))*\\s+" +
+                "|BOOLEAN))*" +
                 getSuchThatPattern() +
                 getWithPattern() +
                 "$";
@@ -71,7 +70,7 @@ class Validator {
     }
 
     private String getSuchThatPattern() {
-        return "(SUCH THAT\\s+(" +
+        return "(\\s+SUCH THAT\\s+(" +
                 getRelRefPattern("MODIFIES") + "|" +
                 getRelRefPattern("USES") + "|" +
                 getRelRefPattern("PARENT") + "|" +
@@ -80,7 +79,17 @@ class Validator {
                 getRelRefPattern("FOLLOWS\\*") + "|" +
                 getRelRefPattern("CALLS") + "|" +
                 getRelRefPattern("CALLS\\*") +
-                "))?";
+                "))?" +
+                "(\\s+AND\\s+(" +
+                getRelRefPattern("MODIFIES") + "|" +
+                getRelRefPattern("USES") + "|" +
+                getRelRefPattern("PARENT") + "|" +
+                getRelRefPattern("PARENT\\*") + "|" +
+                getRelRefPattern("FOLLOWS") + "|" +
+                getRelRefPattern("FOLLOWS\\*") + "|" +
+                getRelRefPattern("CALLS") + "|" +
+                getRelRefPattern("CALLS\\*") +
+                "))*";
     }
 
     private String getRelRefPattern(String rel) {
@@ -102,7 +111,7 @@ class Validator {
     }
 
     private String getEntRefPattern() {
-        return getSynonymsPattern() + "|_|\"[A-Z][A-Z0-9#]*\"";
+        return getSynonymsPattern() + "|_|(\"[A-Z][A-Z0-9#]*\")|\\d+";
     }
 
     private String getWithPattern() {
