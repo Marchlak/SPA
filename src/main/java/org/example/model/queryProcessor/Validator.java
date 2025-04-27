@@ -79,7 +79,7 @@ class Validator {
                 getRelRefPattern("FOLLOWS\\*") + "|" +
                 getRelRefPattern("CALLS") + "|" +
                 getRelRefPattern("CALLS\\*") +
-                "))?" +
+                ")" +
                 "(\\s+AND\\s+(" +
                 getRelRefPattern("MODIFIES") + "|" +
                 getRelRefPattern("USES") + "|" +
@@ -89,7 +89,7 @@ class Validator {
                 getRelRefPattern("FOLLOWS\\*") + "|" +
                 getRelRefPattern("CALLS") + "|" +
                 getRelRefPattern("CALLS\\*") +
-                "))*";
+                "))*)?";
     }
 
     private String getRelRefPattern(String rel) {

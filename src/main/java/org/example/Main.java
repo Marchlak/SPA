@@ -17,7 +17,7 @@ import java.util.Set;
 //todo ktokolwiek pkb -> getVarName, getProcName, getConstValue
 public class Main {
     public static void main(String[] args) {
-        //lololo();
+        lololo();
         if (args.length < 1) {
             System.out.println("#Brak pliku źródłowego");
             return;

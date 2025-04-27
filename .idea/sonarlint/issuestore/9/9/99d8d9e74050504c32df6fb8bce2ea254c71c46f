@@ -1,30 +1,44 @@
 
-G	java:S106"+Replace this use of System.out by a logger.(ŽÎ»‚8É²µïæ2
-E	java:S1081")Either remove or fill this block of code.(ÄøÛŠ8Ï®¯ïæ2
-X	java:S1251"<This block of commented-out lines of code should be removed.(ÄøÛŠ8Ð®¯ïæ2
-J	java:S1082")Either remove or fill this block of code.(¶ŒÖÌøÿÿÿÿ8Ö§‰­ã2
-]	java:S1252"<This block of commented-out lines of code should be removed.(¶ŒÖÌøÿÿÿÿ8Ö§‰­ã2
+G	java:S106"+Replace this use of System.out by a logger.(ŽÎ»‚8¨µÙ¼ç2
+E	java:S1086")Either remove or fill this block of code.(ÄøÛŠ8¸µÙ¼ç2
+X	java:S1256"<This block of commented-out lines of code should be removed.(ÄøÛŠ8¹µÙ¼ç2
 p
-java:S3776‹"RRefactor this method to reduce its Cognitive Complexity from 16 to the 15 allowed.(åŸæÑ8Þ®¯ïæ2
-u
-java:S3776Æ"RRefactor this method to reduce its Cognitive Complexity from 16 to the 15 allowed.(ÿÓ¹±þÿÿÿÿ8ç®¯ïæ2
-u
-java:S3776Þ"RRefactor this method to reduce its Cognitive Complexity from 16 to the 15 allowed.(ãÈÀøÿÿÿÿ8ë®¯ïæ2
-o
-java:S3776‰"RRefactor this method to reduce its Cognitive Complexity from 38 to the 15 allowed.(ßèñ68ð®¯ïæ2
-^	java:S125ú"<This block of commented-out lines of code should be removed.(þÏÛ¸üÿÿÿÿ8ò®¯ïæ2
-X
-java:S6213Œ":Rename this variable to not match a restricted identifier.(ÒÏ—Æ8ó®¯ïæ2
+java:S3776"RRefactor this method to reduce its Cognitive Complexity from 16 to the 15 allowed.(åŸæÑ8ÑµÙ¼ç2
+p
+java:S3776»"RRefactor this method to reduce its Cognitive Complexity from 45 to the 15 allowed.(•„‚¸8ÝµÙ¼ç2
+b
+java:S3358É"DExtract this nested ternary operation into an independent statement.(ÂöÝ€8áµÙ¼ç2
+g
+java:S3358Í"DExtract this nested ternary operation into an independent statement.(üÕ†Ñúÿÿÿÿ8âµÙ¼ç2
 ]
-java:S6213®":Rename this variable to not match a restricted identifier.(½„£Žýÿÿÿÿ8ø®¯ïæ2
-W
-java:S6213¹":Rename this variable to not match a restricted identifier.(–ÌŽe8ù®¯ïæ2
+java:S6213ê":Rename this variable to not match a restricted identifier.(¯áýÿÿÿÿ8éµÙ¼ç2
 X
-java:S6213Â":Rename this variable to not match a restricted identifier.(ÒÏ—Æ8ú®¯ïæ2
-Y	java:S125Ë"<This block of commented-out lines of code should be removed.(†°Â­8ü®¯ïæ2
+java:S6213ó":Rename this variable to not match a restricted identifier.(˜ØñÔ8ëµÙ¼ç2
+u
+java:S3776“"RRefactor this method to reduce its Cognitive Complexity from 16 to the 15 allowed.(ÿÓ¹±þÿÿÿÿ8ôµÙ¼ç2
+u
+java:S3776«"RRefactor this method to reduce its Cognitive Complexity from 16 to the 15 allowed.(ãÈÀøÿÿÿÿ8ûµÙ¼ç2
+o
+java:S3776Ö"RRefactor this method to reduce its Cognitive Complexity from 38 to the 15 allowed.(ßèñ68„¶Ù¼ç2
+^	java:S125Ç"<This block of commented-out lines of code should be removed.(þÏÛ¸üÿÿÿÿ8™¶Ù¼ç2
+X
+java:S6213Ù":Rename this variable to not match a restricted identifier.(ÒÏ—Æ8š¶Ù¼ç2
+]
+java:S6213û":Rename this variable to not match a restricted identifier.(½„£Žýÿÿÿÿ8¢¶Ù¼ç2
+W
+java:S6213†":Rename this variable to not match a restricted identifier.(–ÌŽe8¤¶Ù¼ç2
+X
+java:S6213":Rename this variable to not match a restricted identifier.(ÒÏ—Æ8¦¶Ù¼ç2
+Y	java:S125˜"<This block of commented-out lines of code should be removed.(†°Â­8©¶Ù¼ç2
 K
-java:S1172ø"-Remove this unused method parameter "select".(·Þõ”8‚¯¯ïæ2
+java:S1172ú"-Remove this unused method parameter "select".(·Þõ”8‚¯¯ïæ2
+q
+java:S1128"TRemove this unnecessary import: same package classes are always implicitly imported.(áï‚8ë–Ý¼ç2
+q
+java:S1128"TRemove this unnecessary import: same package classes are always implicitly imported.(“ÝÛž8ì–Ý¼ç2
 Q
-java:S1128"4Remove this unused import 'java.util.stream.Stream'.(ó÷Ž”8›³µïæ2
+java:S1128	"4Remove this unused import 'java.util.stream.Stream'.(ó÷Ž”8ì–Ý¼ç2
 L
-java:S1144‰"/Remove this unused private "handleUses" method.(ßèñ68‰¯¯ïæ2
+java:S1144Ö"/Remove this unused private "handleUses" method.(ßèñ68Â¶Ù¼ç2
+M
+java:S1144ú"/Remove this unused private "handleWith" method.(·Þõ”8Â¶Ù¼ç2
