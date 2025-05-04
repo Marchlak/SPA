@@ -15,7 +15,7 @@ Select s such that Parent (s, 10)
 8
 stmt s;
 Select s such that Parent (8, s)
-none
+10, 13, 14, 15, 16, 9
 stmt s;
 Select s such that Parent* (s, 10)
 8
@@ -42,7 +42,7 @@ Select s such that Follows* (s, 8)
 1, 2, 3, 4, 5, 6, 7
 stmt s;
 Select s such that Follows* (s, 9)
-
+none
 variable v;
 Select v such that Modifies (18, v)
 a, c, d, t

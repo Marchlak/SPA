@@ -5,6 +5,10 @@ import subprocess
 import sys
 import time
 
+GREEN = "\033[32m"
+RED = "\033[31m"
+RESET = "\033[0m"
+
 error_count = 0
 directory = "simple"
 source_files = glob.glob(os.path.join(directory, "source*.txt"))
@@ -57,15 +61,15 @@ for source_file in source_files:
         ans_nums = re.findall(r'\d+', answer)
         if exp_nums and ans_nums:
             if sorted(exp_nums) == sorted(ans_nums):
-                print("OK:", answer)
+                print(f"{GREEN}OK: {answer}{RESET}")
             else:
-                print("Mismatch: expected:", expected, "got:", answer)
+                print(f"{RED}Mismatch: expected: {expected} got: {answer}{RESET}")
                 error_count += 1
         else:
             if answer == expected:
-                print("OK:", answer)
+                print(f"{GREEN}OK: {answer}{RESET}")
             else:
-                print("Mismatch: expected:", expected, "got:", answer)
+                print(f"{RED}Mismatch: expected: {expected} got: {answer}{RESET}")
                 error_count += 1
 if error_count:
     sys.exit(1)
