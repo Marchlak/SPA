@@ -1,1 +1,1 @@
-For query Select s such that Parent (s, s1) with s1.stmt#=20: none
+For query Select s with s.stmt# = co.value: #Query is not valid

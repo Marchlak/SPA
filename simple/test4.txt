@@ -16,6 +16,3 @@ a, b, d, k, t
 assign a; variable v;
 Select v such that Uses (a, v)
 a, b, c, d, k, t
-stmt s; constant co;
-Select s with s.stmt# = co.value
-1, 10, 2, 20, 3
