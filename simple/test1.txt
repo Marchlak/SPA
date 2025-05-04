@@ -36,7 +36,7 @@ Select s such that Follows (s, 23)
 none
 stmt s;
 Select s such that Follows* (s, 1)
-
+none
 stmt s;
 Select s such that Follows* (s, 8)
 1, 2, 3, 4, 5, 6, 7
