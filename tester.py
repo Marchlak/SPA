@@ -7,6 +7,8 @@ import time
 
 GREEN = "\033[32m"
 RED = "\033[31m"
+YELLOW = "\033[33m"
+CYAN = "\033[36m"
 RESET = "\033[0m"
 
 error_count = 0
@@ -15,13 +17,14 @@ source_files = glob.glob(os.path.join(directory, "source*.txt"))
 source_files.sort()
 
 for source_file in source_files:
+    print(f"{CYAN}{'='*20} {source_file} {'='*20}{RESET}")
     m = re.search(r"source(\d+)\.txt", os.path.basename(source_file))
     if not m:
         continue
     number = m.group(1)
     test_file = os.path.join(directory, f"test{number}.txt")
     if not os.path.exists(test_file):
-        print(f"Test file {test_file} does not exist, skipping.")
+        print(f"{YELLOW}Test file {test_file} does not exist, skipping.{RESET}")
         continue
     print(f"Testing with {source_file} and {test_file}")
     cmd = ["java", "-jar", "target/TreeSitter-1.0-SNAPSHOT.jar", source_file]
@@ -71,6 +74,10 @@ for source_file in source_files:
             else:
                 print(f"{RED}Mismatch: expected: {expected} got: {answer}{RESET}")
                 error_count += 1
+        with open("test_output.txt", "w", encoding="utf-8") as out_f:
+            out_f.write(f"For query {query}: {answer}\n")
+        print(f"{YELLOW}Last test: For query {query}: {answer}{RESET}")
+        print(f"{CYAN}{'-'*40}{RESET}")
 if error_count:
     sys.exit(1)
 sys.exit(0)

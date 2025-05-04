@@ -1,0 +1,27 @@
+variable v;
+Select v such that Modifies (3, v)
+d
+variable v;
+Select v such that Modifies (4, v)
+a, c, d
+variable v;
+Select v such that Modifies (6, v)
+c
+variable v;
+Select v such that Modifies (18, v)
+a, c, d, t
+variable v;
+Select v such that Modifies (24, v)
+a, d
+variable v;
+Select v such that Modifies (28, v)
+t
+while w;
+Select w such that Modifies (w, "d")
+10, 18, 23
+while w;
+Select w such that Modifies (w, "c")
+10, 18
+variable v;
+Select v such that Modifies ("Rectangle", v)
+a, c, d, t

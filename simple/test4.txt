@@ -1,0 +1,21 @@
+stmt s;
+Select s such that Uses (s, "d")
+10, 11, 12, 13, 14, 17, 18, 19, 20, 23, 24, 26, 27, 4, 8, 9
+stmt s;
+Select s such that Uses (s, "c")
+10, 16, 17, 18, 19, 21, 8
+variable v;
+Select v such that Uses (10, v)
+c, d, t
+variable v;
+Select v such that Uses (18, v)
+a, b, c, d, k, t
+variable v;
+Select v such that Uses (23, v)
+a, b, d, k, t
+assign a; variable v;
+Select v such that Uses (a, v)
+a, b, c, d, k, t
+stmt s; constant co;
+Select s with s.stmt# = co.value
+1, 10, 2, 20, 3
