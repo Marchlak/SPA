@@ -29,7 +29,10 @@ public class QueryEvaluator {
     }
     synonyms = validator.getSynonyms();
     String[] split = query.split(";");
-    String queryToProcess = split[split.length - 1].trim().toUpperCase();
+    String queryToProcess = toUpperCaseOutsideQuotes(split[split.length - 1].trim());
+    // ─── DEBUG #1 ───────────────────────────────────────────────────────────
+    System.out.println("DEBUG ▶ queryToProcess = " + queryToProcess);
+    // -----------------------------------------------------------------------
     Set<String> result = processQuery(queryToProcess);
     if(result.isEmpty()) result.add("none");
     return result;
@@ -51,7 +54,7 @@ public class QueryEvaluator {
         case PARENT_STAR -> handleParentStar(left, right, partialSolutions);
         case FOLLOWS -> handleFollows(left, right, partialSolutions);
         case FOLLOWS_STAR -> handleFollowsStar(left, right, partialSolutions);
-        case USES -> {} //handleUses(left, right, partialSolutions);
+        case USES -> handleUses(left, right, partialSolutions);
       }
     }
     return finalizeResult(query, partialSolutions);
@@ -103,10 +106,11 @@ public class QueryEvaluator {
   }
 
   private String extractRelationshipArgs(String s) {
-    String tmp = s.split("\\)")[0].trim();
+    String tmp  = s.split("\\)")[0].trim();
     String args = tmp.substring(1);
-    return args.replace("\"", "");
+    return args;          // ← zostaw tak, bez .replace("\"","")
   }
+
 
   private Map<String, Set<String>> initSynonymMap() {
     Map<String, Set<String>> map = new HashMap<>();
@@ -339,71 +343,67 @@ public class QueryEvaluator {
 //    }
 //  }
 //
-private void handleUses(String left, String right, Map<String, Set<String>> partialSolutions) {
-  // Przypadek 1: Uses(s, "x") — synonim instrukcji, znana zmienna
-  if (synonymsContain(left) && isStringLiteral(right)) {
-    String var = right.replace("\"", "");
+private void handleUses(String left, String right,
+                        Map<String, Set<String>> partial) {
+
+  boolean leftIsNum   = isNumeric(left);
+  boolean rightIsNum  = isNumeric(right);
+
+  boolean leftIsLit   = isStringLiteral(left);
+  boolean rightIsLit  = isStringLiteral(right);
+
+  String leftLit      = leftIsLit  ? left.substring(1, left.length() - 1)  : null;
+  String rightLit     = rightIsLit ? right.substring(1, right.length() - 1) : null;
+
+  if (isStmtSyn(left) && rightLit != null) {
     for (int stmt : pkb.getAllStmts()) {
-      if (pkb.getUsedByStmt(stmt).contains(var)) {
-        partialSolutions.get(left).add(String.valueOf(stmt));
+      if (pkb.getUsedByStmt(stmt).stream()
+              .anyMatch(v -> v.equalsIgnoreCase(rightLit))) {
+        partial.get(left).add(String.valueOf(stmt));
       }
     }
+    return;
   }
 
-  // Przypadek 2: Uses(5, v) — znana liczba (stmt), zmienna jako synonim
-  if (isNumeric(left) && synonymsContain(right)) {
-    int stmt = Integer.parseInt(left);
-    Set<String> usedVars = pkb.getUsedByStmt(stmt);
-    if (usedVars.isEmpty()) {
-      partialSolutions.get(right).add("none");
-    } else {
-      partialSolutions.get(right).addAll(usedVars);
-    }
+  if (leftIsNum && synonymsContain(right)) {
+    partial.get(right).addAll(pkb.getUsedByStmt(Integer.parseInt(left)));
+    return;
   }
 
-  // Przypadek 3: Uses("main", v) — znana procedura, zmienna jako synonim
-  if (isStringLiteral(left) && synonymsContain(right)) {
-    String proc = left.replace("\"", "");
-    Set<String> vars = pkb.getUsedByProc(proc);
-    if (vars.isEmpty()) {
-      partialSolutions.get(right).add("none");
-    } else {
-      partialSolutions.get(right).addAll(vars);
-    }
+  if (leftIsLit && synonymsContain(right)) {
+    partial.get(right).addAll(pkb.getUsedByProc(leftLit));
+    return;
   }
 
-  // Przypadek 4: Uses(p, v) — p jako synonim procedury, v jako synonim zmiennej
-  if (!isNumeric(left) && synonymsContain(left) && synonymsContain(right)) {
+  if (isProcSyn(left) && synonymsContain(right)) {
     for (String proc : pkb.getAllProcedures()) {
-      Set<String> usedVars = pkb.getUsedByProc(proc);
-      for (String var : usedVars) {
-        partialSolutions.get(left).add(proc);
-        partialSolutions.get(right).add(var);
+      for (String var : pkb.getUsedByProc(proc)) {
+        partial.get(left).add(proc);
+        partial.get(right).add(var);
       }
     }
+    return;
   }
 
-  // Przypadek 5: Uses(s, v) — s jako synonim instrukcji (np. call stmt), v jako synonim zmiennej
-  if (synonymsContain(left) && synonymsContain(right)) {
+  if (isStmtSyn(left) && synonymsContain(right)) {
     for (int stmt : pkb.getAllStmts()) {
-      Set<String> vars = pkb.getUsedByStmt(stmt);
-      for (String var : vars) {
-        partialSolutions.get(left).add(String.valueOf(stmt));
-        partialSolutions.get(right).add(var);
+      for (String var : pkb.getUsedByStmt(stmt)) {
+        partial.get(left).add(String.valueOf(stmt));
+        partial.get(right).add(var);
       }
     }
+    return;
   }
 
-  // Przypadek 6: Uses(p, "x") — procedura jako synonim, zmienna znana
-  if (synonymsContain(left) && isStringLiteral(right)) {
-    String var = right.replace("\"", "");
+  if (isProcSyn(left) && rightLit != null) {
     for (String proc : pkb.getAllProcedures()) {
-      if (pkb.getUsedByProc(proc).contains(var)) {
-        partialSolutions.get(left).add(proc);
+      if (pkb.getUsedByProc(proc).contains(rightLit)) {
+        partial.get(left).add(proc);
       }
     }
   }
 }
+
 //
 //  private void handleModifies(String left, String right, Map<String, Set<String>> partialSolutions) {
 //    if (isNumeric(left) && synonymsContain(right)) {
@@ -476,16 +476,6 @@ private void handleUses(String left, String right, Map<String, Set<String>> part
     return new LinkedHashSet<>(sorted);
   }
 
-
-
-
-
-
-
-
-
-
-
   private boolean synonymsContain(String s) {
     for (Synonym syn : synonyms) {
       if (syn.name().equalsIgnoreCase(s))
@@ -534,4 +524,41 @@ private void handleUses(String left, String right, Map<String, Set<String>> part
     return partialResult.stream().filter(x -> x.equals(clause.right())).collect(Collectors.toSet());
   }
 
+  private static String toUpperCaseOutsideQuotes(String input) {
+    StringBuilder sb = new StringBuilder(input.length());
+    boolean insideQuotes = false;
+
+    for (int i = 0; i < input.length(); i++) {
+      char ch = input.charAt(i);
+
+      if (ch == '"' && (i == 0 || input.charAt(i - 1) != '\\')) {
+        insideQuotes = !insideQuotes;
+        sb.append(ch);
+      } else {
+        sb.append(insideQuotes ? ch : Character.toUpperCase(ch));
+      }
+    }
+    return sb.toString();
+  }
+
+  private SynonymType getSynType(String name) {
+    return synonyms.stream()
+            .filter(s -> s.name().equalsIgnoreCase(name))
+            .map(Synonym::type)
+            .findFirst()
+            .orElse(null);
+  }
+
+  private boolean isStmtSyn(String name) {
+    return EnumSet.of(SynonymType.STMT,
+                    SynonymType.ASSIGN,
+                    SynonymType.WHILE,
+                    SynonymType.IF,
+                    SynonymType.CALL)
+            .contains(getSynType(name));
+  }
+
+  private boolean isProcSyn(String name) {
+    return getSynType(name) == SynonymType.PROCEDURE;
+  }
 }

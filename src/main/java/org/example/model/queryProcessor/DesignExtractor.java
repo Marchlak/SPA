@@ -26,6 +26,7 @@ public class DesignExtractor {
             proc = proc.getRightSibling();
         }
         propagateCallModifies();
+        propagateCallUses();
     }
 
     private void processProcedure(TNode procNode) {
@@ -236,5 +237,13 @@ public class DesignExtractor {
         }
     }
 
-
+    private void propagateCallUses() {
+        for (Integer callStmt : pkb.getAllCallStmts()) {
+            String callee = pkb.getCalledProcByStmt(callStmt);
+            for (String var : pkb.getUsedByProc(callee)) {
+                pkb.setUsesStmt(callStmt, var);
+                pkb.propagateUsesToParent(callStmt, var);
+            }
+        }
+    }
 }
