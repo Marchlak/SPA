@@ -30,6 +30,17 @@ public class PKB {
 
     private final Map<Integer, String> callStmtToProc = new HashMap<>();
 
+    private final Map<String, Set<Integer>> varToStmtsUsingIt = new HashMap<>();
+    private final Map<String, Set<String>> procToVarsUsedInIt = new HashMap<>();
+
+    public Set<Integer> getStmtsUsingVar(String varName) {
+        return varToStmtsUsingIt.getOrDefault(varName, new HashSet<>());
+    }
+
+    public Set<String> getVarsUsedInProc(String procName) {
+        return procToVarsUsedInIt.getOrDefault(procName, new HashSet<>());
+    }
+
     public void setCallStmt(int stmt, String proc) {
         callStmtToProc.put(stmt, proc);
     }
@@ -149,10 +160,12 @@ public class PKB {
 
     public void setUsesStmt(int stmt, String var) {
         usesStmt.computeIfAbsent(stmt, k -> new HashSet<>()).add(var);
+        varToStmtsUsingIt.computeIfAbsent(var, k -> new HashSet<>()).add(stmt);
     }
 
     public void setUsesProc(String proc, String var) {
         usesProc.computeIfAbsent(proc, k -> new HashSet<>()).add(var);
+        procToVarsUsedInIt.computeIfAbsent(proc, k -> new HashSet<>()).add(var);
     }
 
     public Set<String> getUsedByStmt(int stmt) {

@@ -17,7 +17,7 @@ import java.util.Set;
 //todo ktokolwiek pkb -> getVarName, getProcName, getConstValue
 public class Main {
     public static void main(String[] args) {
-        //lololo();
+        lololo();
         if (args.length < 1) {
             System.out.println("#Brak pliku źródłowego");
             return;
@@ -61,9 +61,17 @@ public class Main {
         Parser parser = new Parser(tokens);
         TNode ast = parser.parseProgram();
         PKB pkb = new PKB();
+
         DesignExtractor designExtractor = new DesignExtractor(pkb);
         designExtractor.extract(ast);
         QueryEvaluator queryEvaluator = new QueryEvaluator(pkb);
+
+        Set<Integer> stmtsUsingX = pkb.getStmtsUsingVar("t");
+        Set<String> varsUsedInMain = pkb.getVarsUsedInProc("Circle");
+
+        System.out.println(stmtsUsingX);
+        System.out.println(varsUsedInMain);
+
         String declarations = "stmt a;";
         String query = "select a such that Follows* (a, 4) with a.stmt# = 1"; //   Parent (8, a) and
         System.out.println(queryEvaluator.evaluateQuery(declarations + query));
