@@ -2,6 +2,7 @@ package org.example.model.queryProcessor;
 
 import java.util.HashSet;
 import java.util.Set;
+
 //todo in relationships only correct variables
 class Validator {
     private final Set<Synonym> synonyms;
@@ -30,7 +31,7 @@ class Validator {
     private String separateQueryFromSynonyms(String query) {
         String[] split = query.split(";");
         if (split.length > 1) {
-            for(int i = 0; i < split.length - 1; i++) {
+            for (int i = 0; i < split.length - 1; i++) {
                 addSynonym(split[i].trim());
             }
         }
@@ -41,14 +42,15 @@ class Validator {
         String[] split = declaration.split(" ");
         String synonymName;
         SynonymType type = SynonymMapper.toSynonymType(split[0]);
-        for(int i = 1; i < split.length; i++) {
+        for (int i = 1; i < split.length; i++) {
             synonymName = split[i].replace(',', ' ').trim();
-            if(!synonymName.matches("^[A-Z][A-Z0-9#]*$")) {
+            if (!synonymName.matches("^[A-Z][A-Z0-9#]*$")) {
                 throw new IllegalArgumentException();
             }
             synonyms.add(new Synonym(type, synonymName));
         }
     }
+
     private void setQueryPattern() {
         queryPattern = "^SELECT\\s+(" +
                 getSynonymsPattern() +
@@ -62,7 +64,7 @@ class Validator {
 
     private String getSynonymsPattern() {
         StringBuilder sb = new StringBuilder();
-        for(Synonym s : synonyms) {
+        for (Synonym s : synonyms) {
             sb.append(s.name()).append('|');
         }
         sb.delete(sb.length() - 1, sb.length());
@@ -93,16 +95,19 @@ class Validator {
     }
 
     private String getRelRefPattern(String rel) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("(")
-                .append(rel)
-                .append("\\s+\\((")
-                .append(getStmtRefPattern())
-                .append(")\\s?,\\s?(");
-        String s = rel.equals("MODIFIES") || rel.equals("USES") ? getEntRefPattern() : getStmtRefPattern();
-        sb.append(s);
-        sb.append("))\\)");
-        return sb.toString();
+        boolean isEntRel = rel.equals("MODIFIES")
+                || rel.equals("USES")
+                || rel.equals("CALLS")
+                || rel.equals("CALLS\\*");
+        String firstPattern = isEntRel ? getEntRefPattern() : getStmtRefPattern();
+        String secondPattern = isEntRel ? getEntRefPattern() : getStmtRefPattern();
+        return "("
+                + rel
+                + "\\s+\\(("
+                + firstPattern
+                + ")\\s?,\\s?("
+                + secondPattern
+                + "))\\)";
     }
 
     private String getStmtRefPattern() {

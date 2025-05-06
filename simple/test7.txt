@@ -22,3 +22,6 @@ Triangle, Hexagon, Rectangle
 procedure p;
 Select p such that Calls* ("Rectangle", p)
 Triangle
+procedure p;
+Select p such that Calls ("Circle", p)
+Triangle, Hexagon, Rectangle

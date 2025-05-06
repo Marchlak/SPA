@@ -14,10 +14,8 @@ import java.util.*;
 
 public class Main {
     public static void main(String[] args) {
-        String programFilePath = "/home/przemyslawrutkowski/Desktop/studia/atsi/TreeSitter/simple/source4.txt";
-        String[] queryFilesPaths = {
-                "/home/przemyslawrutkowski/Desktop/studia/atsi/TreeSitter/simple/test4.txt"
-        };
+        String programFilePath = "./simple/source7.txt";
+        String[] queryFilesPaths = {"./simple/test7.txt"};
 
         for (String queryFile : queryFilesPaths) {
             System.out.println("\n🧪 Running tests from: " + queryFile);
