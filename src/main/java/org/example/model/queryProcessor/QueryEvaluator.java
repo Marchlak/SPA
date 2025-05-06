@@ -424,6 +424,8 @@ public class QueryEvaluator {
             selectSyn = selectSyn.split("\\s+")[0];
         }
 
+        partialSolutions = handleWith(partialSolutions, query);
+
         Set<String> initial = partialSolutions.getOrDefault(selectSyn, Collections.emptySet());
 
         Set<String> filtered = initial.stream()
@@ -441,10 +443,10 @@ public class QueryEvaluator {
             EntityType wanted = null;
             switch (st) {
                 case ASSIGN -> wanted = EntityType.ASSIGN;
-                case WHILE -> wanted = EntityType.WHILE;
-                case IF -> wanted = EntityType.IF;
-                case CALL -> wanted = EntityType.CALL;
-                default -> wanted = null;
+                case WHILE  -> wanted = EntityType.WHILE;
+                case IF     -> wanted = EntityType.IF;
+                case CALL   -> wanted = EntityType.CALL;
+                default     -> wanted = null;
             }
             if (wanted != null) {
                 EntityType filterType = wanted;
@@ -473,6 +475,7 @@ public class QueryEvaluator {
         if (sorted.isEmpty()) {
             return Set.of("none");
         }
+
         return new LinkedHashSet<>(sorted);
     }
 
@@ -492,8 +495,68 @@ public class QueryEvaluator {
             return false;
         }
     }
+    private Map<String, Set<String>> handleWith(Map<String, Set<String>> partialSolutions, String query) {
+        List<WithClause> withClauses = parseWithClauses(query);
 
-    private Set<String> handleWith(Set<String> partialResult, String query, String select) {
+        for (WithClause w : withClauses) {
+            String[] leftParts = w.left().split("\\.");
+            if (leftParts.length != 2) continue;
+
+            String synonym = leftParts[0];
+            String attr = leftParts[1].toUpperCase();
+
+            switch (attr) {
+                case "STMT#" -> handleStmtWith(partialSolutions, w, synonym);
+            }
+
+            updateParentRelations(partialSolutions, synonym);
+        }
+
+        return partialSolutions;
+    }
+
+    private void updateParentRelations(Map<String, Set<String>> partialSolutions, String synonym) {
+        for (String otherSyn : partialSolutions.keySet()) {
+            if (otherSyn.equals(synonym)) continue;
+
+            Set<String> candidateValues = new HashSet<>();
+            for (String val : partialSolutions.get(synonym)) {
+                try {
+                    int stmt = Integer.parseInt(val);
+                    int parent = pkb.getParent(stmt);
+                    if (parent != -1) {
+                        candidateValues.add(String.valueOf(parent));
+                    }
+                } catch (Exception ignored) {}
+            }
+
+            if (!candidateValues.isEmpty()) {
+                Set<String> current = partialSolutions.getOrDefault(otherSyn, new HashSet<>());
+                if (current.isEmpty()) {
+                    partialSolutions.put(otherSyn, candidateValues);
+                } else {
+                    current.retainAll(candidateValues);
+                    partialSolutions.put(otherSyn, current);
+                }
+            }
+        }
+    }
+
+    private void handleStmtWith(Map<String, Set<String>> partialSolutions, WithClause w, String synonym) {
+        String expected = w.right().replace(";", "").trim();
+
+        if (!partialSolutions.containsKey(synonym) || partialSolutions.get(synonym).isEmpty()) {
+            partialSolutions.put(synonym, Set.of(expected));
+        } else {
+            Set<String> existing = partialSolutions.get(synonym);
+            Set<String> filtered = existing.stream()
+                    .filter(val -> val.equals(expected))
+                    .collect(Collectors.toSet());
+            partialSolutions.put(synonym, filtered);
+        }
+    }
+
+    private List<WithClause> parseWithClauses(String query) {
         String[] split = query.split("WITH");
         List<WithClause> withClauses = new ArrayList<>();
         for (int i = 1; i < split.length; i++) {
@@ -503,25 +566,7 @@ public class QueryEvaluator {
                 withClauses.add(new WithClause(parts[0].trim(), parts[1].trim()));
             }
         }
-
-        for (WithClause w : withClauses) {
-            partialResult = applyWithClause(partialResult, w);
-        }
-
-        return partialResult;
-    }
-
-    private Set<String> applyWithClause(Set<String> partialResult, WithClause clause) {
-        String attributeType = clause.left().split("\\.")[1];
-        return switch (attributeType) {
-            case "STMT#" -> applyStmtNumber(partialResult, clause);
-            case "PROCNAME", "VARNAME", "VALUE" -> Set.of("");
-            default -> throw new IllegalStateException("Unexpected value: " + attributeType);
-        };
-    }
-
-    private Set<String> applyStmtNumber(Set<String> partialResult, WithClause clause) {
-        return partialResult.stream().filter(x -> x.equals(clause.right())).collect(Collectors.toSet());
+        return withClauses;
     }
 
     private static String toUpperCaseOutsideQuotes(String input) {
