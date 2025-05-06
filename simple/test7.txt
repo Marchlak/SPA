@@ -1,0 +1,24 @@
+procedure p;
+Select p such that Calls (p, "Triangle")
+Circle, Rectangle
+procedure p;
+Select p such that Calls (p, "Hexagon")
+Circle
+procedure p;
+Select p such that Calls (p, "Rectangle")
+Circle
+procedure p;
+Select p such that Calls* (p, "Triangle")
+Circle, Rectangle
+procedure p;
+Select p such that Calls* (p, "Hexagon")
+Circle
+procedure p;
+Select p such that Calls* (p, "Rectangle")
+Circle
+procedure p;
+Select p such that Calls* ("Circle", p)
+Triangle, Hexagon, Rectangle
+procedure p;
+Select p such that Calls* ("Rectangle", p)
+Triangle
