@@ -1,1 +1,1 @@
-For query Select s with s.stmt# = co.value: #Query is not valid
+For query Select p such that Calls ("Circle", p): Hexagon, Rectangle, Triangle

@@ -30,9 +30,6 @@ public class QueryEvaluator {
         synonyms = validator.getSynonyms();
         String[] split = query.split(";");
         String queryToProcess = toUpperCaseOutsideQuotes(split[split.length - 1].trim());
-        // ─── DEBUG #1 ───────────────────────────────────────────────────────────
-        System.out.println("DEBUG ▶ queryToProcess = " + queryToProcess);
-        // -----------------------------------------------------------------------
         Set<String> result = processQuery(queryToProcess);
         if (result.isEmpty()) result.add("none");
         return result;
