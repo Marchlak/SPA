@@ -271,6 +271,21 @@ public class QueryEvaluator {
             for (int d : descendants)
                 partialSolutions.get(right).add(String.valueOf(d));
         }
+        if(synonymsContain(left) && synonymsContain(right)){
+            Set<String> leftResults = new HashSet<>();
+            Set<String> rightResults = new HashSet<>();
+            Set<Integer> parents = pkb.getAllStmts();
+            for (int s : pkb.getAllStmts()) {
+                Set<Integer> followers = pkb.getFollowsStar(s);
+                for (int w : followers) {
+                    leftResults.add(String.valueOf(s));
+                    rightResults.add(String.valueOf(w));
+                }
+            }
+
+            partialSolutions.put(left, leftResults);
+            partialSolutions.put(right, rightResults);
+        }
     }
 
     private void handleCalls(String left, String right, Map<String, Set<String>> partialSolutions) {
