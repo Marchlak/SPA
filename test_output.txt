@@ -1,1 +1,1 @@
-For query Select p such that Calls ("Circle", p): Hexagon, Rectangle, Triangle
+For query Select s such that Parent (s, s1) with s1.stmt#=20: 18

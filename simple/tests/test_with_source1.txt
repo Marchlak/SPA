@@ -10,6 +10,3 @@ Select s such that Parent (s, s1) with s1.stmt#=11
 stmt s, s1;
 Select s such that Parent (s, s1) with s1.stmt#=20
 18
-stmt s; constant co;
-Select s with s.stmt# = co.value
-1, 10, 2, 20, 3

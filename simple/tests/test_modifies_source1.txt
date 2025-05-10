@@ -25,3 +25,11 @@ Select w such that Modifies (w, "c")
 variable v;
 Select v such that Modifies ("Rectangle", v)
 a, c, d, t
+Select v such that Modifies (18, v)
+a, c, d, t
+variable v;
+Select v such that Modifies (24, v)
+a, d
+while w;
+Select w such that Modifies (w, "d")
+10, 18, 23

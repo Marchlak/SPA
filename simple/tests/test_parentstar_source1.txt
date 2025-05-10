@@ -1,0 +1,42 @@
+stmt s;
+Select s such that Parent* (s, 2)
+none
+stmt s;
+Select s such that Parent* (s, 10)
+8
+stmt s;
+Select s such that Parent* (s, 11)
+10, 8
+stmt s;
+Select s such that Parent* (s, 20)
+18
+stmt s; while w;
+Select w such that Parent* (s, 2)
+none
+stmt s; while w;
+Select w such that Parent* (s, 10)
+10, 18, 23
+stmt s; while w;
+Select w such that Parent* (s, 11)
+10, 18, 23
+stmt s; while w;
+Select w such that Parent* (s, 20)
+10, 18, 23
+while w;
+Select w such that Parent* (w, 9)
+none
+while w;
+Select w such that Parent* (w, 11)
+10
+while w;
+Select w such that Parent* (w, 13)
+none
+while w;
+Select w such that Parent* (w, 21)
+18
+while w;
+Select w such that Parent* (w, 13)
+none
+while w;
+Select w such that Parent* (w, 21)
+18

@@ -12,21 +12,23 @@ CYAN = "\033[36m"
 RESET = "\033[0m"
 
 error_count = 0
-directory = "simple"
-source_files = glob.glob(os.path.join(directory, "source*.txt"))
-source_files.sort()
+sources_dir = os.path.join("simple", "simple_sources")
+tests_dir = os.path.join("simple", "tests")
+test_files = glob.glob(os.path.join(tests_dir, "test_*_source*.txt"))
+test_files.sort()
 
-for source_file in source_files:
-    print(f"{CYAN}{'='*20} {source_file} {'='*20}{RESET}")
-    m = re.search(r"source(\d+)\.txt", os.path.basename(source_file))
+for test_file in test_files:
+    print(f"{CYAN}{'='*20} {test_file} {'='*20}{RESET}")
+    m = re.search(r"test_(.+?)_source(\d+)\.txt", os.path.basename(test_file))
     if not m:
         continue
-    number = m.group(1)
-    test_file = os.path.join(directory, f"test{number}.txt")
-    if not os.path.exists(test_file):
-        print(f"{YELLOW}Test file {test_file} does not exist, skipping.{RESET}")
+    testname = m.group(1)
+    number = m.group(2)
+    source_file = os.path.join(sources_dir, f"source{number}.txt")
+    if not os.path.exists(source_file):
+        print(f"{YELLOW}Source file {source_file} does not exist, skipping.{RESET}")
         continue
-    print(f"Testing with {source_file} and {test_file}")
+    print(f"Testing {testname} with {source_file} and {test_file}")
     cmd = ["java", "-jar", "target/TreeSitter-1.0-SNAPSHOT.jar", source_file]
     process = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, bufsize=1)
     timeout = 10
@@ -60,20 +62,19 @@ for source_file in source_files:
         process.stdin.flush()
         answer = process.stdout.readline().rstrip("\n")
         print(f"for query {query}:")
-        exp_nums = re.findall(r'\d+', expected)
-        ans_nums = re.findall(r'\d+', answer)
-        if exp_nums and ans_nums:
-            if sorted(exp_nums) == sorted(ans_nums):
-                print(f"{GREEN}OK: {answer}{RESET}")
-            else:
-                print(f"{RED}Mismatch: expected: {expected} got: {answer}{RESET}")
-                error_count += 1
+        exp_items = [s.strip() for s in expected.split(",")]
+        ans_items = [s.strip() for s in answer.split(",")]
+        try:
+            exp_items_sorted = sorted(exp_items, key=lambda x: int(x) if x.isdigit() else x)
+            ans_items_sorted = sorted(ans_items, key=lambda x: int(x) if x.isdigit() else x)
+        except:
+            exp_items_sorted = sorted(exp_items)
+            ans_items_sorted = sorted(ans_items)
+        if exp_items_sorted == ans_items_sorted:
+            print(f"{GREEN}OK: {answer}{RESET}")
         else:
-            if answer == expected:
-                print(f"{GREEN}OK: {answer}{RESET}")
-            else:
-                print(f"{RED}Mismatch: expected: {expected} got: {answer}{RESET}")
-                error_count += 1
+            print(f"{RED}Mismatch: expected: {expected} got: {answer}{RESET}")
+            error_count += 1
         with open("test_output.txt", "w", encoding="utf-8") as out_f:
             out_f.write(f"For query {query}: {answer}\n")
         print(f"{YELLOW}Last test: For query {query}: {answer}{RESET}")

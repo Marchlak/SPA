@@ -1,0 +1,78 @@
+stmt s;
+Select s such that Follows (s, 1)
+none
+stmt s;
+Select s such that Follows (s, 8)
+7
+stmt s;
+Select s such that Follows (s, 9)
+none
+stmt s;
+Select s such that Follows (s, 10)
+9
+stmt s;
+Select s such that Follows (s, 12)
+11
+stmt s;
+Select s such that Follows (s, 13)
+10
+stmt s;
+Select s such that Follows (s, 23)
+none
+assign a;
+Select a such that Follows (a, 1)
+none
+assign a;
+Select a such that Follows (a, 8)
+7
+assign a;
+Select a such that Follows (a, 9)
+none
+assign a;
+Select a such that Follows (a, 10)
+9
+assign a;
+Select a such that Follows (a, 12)
+11
+assign a;
+Select a such that Follows (a, 13)
+none
+stmt s;
+Select s such that Follows (s, 1)
+none
+stmt s;
+Select s such that Follows (s, 8)
+7
+stmt s;
+Select s such that Follows (s, 9)
+none
+stmt s;
+Select s such that Follows (s, 10)
+9
+stmt s;
+Select s such that Follows (s, 12)
+11
+stmt s;
+Select s such that Follows (s, 13)
+10
+stmt s;
+Select s such that Follows (s, 23)
+none
+assign a;
+Select a such that Follows (a, 1)
+none
+assign a;
+Select a such that Follows (a, 8)
+7
+assign a;
+Select a such that Follows (a, 9)
+none
+assign a;
+Select a such that Follows (a, 10)
+9
+assign a;
+Select a such that Follows (a, 12)
+11
+assign a;
+Select a such that Follows (a, 13)
+none

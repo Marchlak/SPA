@@ -1,0 +1,66 @@
+while w; stmt s;
+Select w such that Follows* (s, w)
+10
+while w; stmt s;
+Select w such that Follows* (w, s)
+10, 18, 23
+stmt s;
+Select s such that Follows* (s, 1)
+none
+stmt s;
+Select s such that Follows* (s, 8)
+1, 2, 3, 4, 5, 6, 7
+stmt s;
+Select s such that Follows* (s, 9)
+none
+stmt s;
+Select s such that Follows* (s, 13)
+10, 9
+stmt s;
+Select s such that Follows* (s, 19)
+none
+stmt s;
+Select s such that Follows* (s, 22)
+18
+while w; stmt s;
+Select w such that Follows* (s, w)
+10
+while w; stmt s;
+Select w such that Follows* (w, s)
+10, 18, 23
+stmt s;
+Select s such that Follows* (s, 1)
+none
+stmt s;
+Select s such that Follows* (s, 8)
+1, 2, 3, 4, 5, 6, 7
+stmt s;
+Select s such that Follows* (s, 9)
+none
+stmt s;
+Select s such that Follows* (s, 13)
+10, 9
+stmt s;
+Select s such that Follows* (s, 19)
+none
+stmt s;
+Select s such that Follows* (s, 22)
+18
+assign a;
+Select a such that Follows* (a, 6)
+1, 2, 3, 5
+assign a;
+Select a such that Follows* (a, 9)
+none
+assign a;
+Select a such that Follows* (a, 10)
+9
+assign a;
+Select a such that Follows* (a, 12)
+11
+assign a;
+Select a such that Follows* (a, 17)
+1, 2, 3, 5, 7
+assign a;
+Select a such that Follows* (a, 28)
+none

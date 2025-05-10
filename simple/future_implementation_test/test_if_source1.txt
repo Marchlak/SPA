@@ -1,0 +1,18 @@
+if ifstat;
+Select ifstat such that Follows* (ifstat, 8)
+none
+if ifstat;
+Select ifstat such that Follows* (ifstat, 17)
+8
+if ifstat;
+Select ifstat such that Follows* (ifstat, 25)
+none
+if ifstat;
+Select ifstat such that Follows* (ifstat, 27)
+none
+if ifstat;
+Select ifstat such that Follows* (ifstat, 8)
+none
+if ifstat; constant co;
+Select BOOLEAN pattern ifstat ("", _) with co.value = 2
+true

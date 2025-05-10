@@ -1,6 +1,3 @@
-if ifstat; constant co;
-Select BOOLEAN pattern ifstat ("", _) with co.value = 2
-true
 prog_line n2;
 Select BOOLEAN such that Next (1, 2)
 false

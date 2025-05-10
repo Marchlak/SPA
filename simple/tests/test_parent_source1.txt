@@ -1,0 +1,24 @@
+stmt s;
+Select s such that Parent (s, 2)
+none
+stmt s;
+Select s such that Parent (s, 10)
+8
+stmt s;
+Select s such that Parent (s, 11)
+10
+stmt s;
+Select s such that Parent (s, 20)
+18
+stmt s;
+Select s such that Parent (2, s)
+none
+stmt s;
+Select s such that Parent (8, s)
+10, 13, 14, 15, 16, 9
+stmt s;
+Select s such that Parent (9, s)
+none
+stmt s;
+Select s such that Parent (25, s)
+none
