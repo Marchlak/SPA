@@ -56,13 +56,25 @@ public class Main {
     }
 
     public static void testRun(String[] args) {
-        String programFilePath = "./simple/source7.txt";
-        String[] queryFilesPaths = {"./simple/test7.txt"};
+        String[] programFilePaths = {
+                "./simple/source5.txt",
+//                "./simple/source2.txt",
+//                "./simple/source3.txt",
+//                "./simple/source4.txt",
+//                "./simple/source5.txt",
+//                "./simple/source6.txt",
+//                "./simple/source7.txt",
+        };
+        String[] queryFilesPaths = {"./simple/test5.txt"};
 
-        for (String queryFile : queryFilesPaths) {
-            System.out.println("\n🧪 Running tests from: " + queryFile);
-            runTests(programFilePath, queryFile);
-        }
+       for (String programFile : programFilePaths) {
+           for (String queryFile : queryFilesPaths) {
+               System.out.println("\n🧪 Running tests from: \n" +
+                       "Program file:" + programFile + "\n" +
+                       "Query file:" + queryFile + "\n");
+               runTests(programFile, queryFile);
+           }
+       }
     }
 
     private static void runTests(String programFile, String queryFile) {
@@ -131,8 +143,8 @@ public class Main {
 
 
     public static void main(String[] args) {
-        //testRun(args);
-        defaultRun(args);
+        testRun(args);
+        //defaultRun(args);
     }
 
 }

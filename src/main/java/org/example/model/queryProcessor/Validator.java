@@ -16,7 +16,6 @@ class Validator {
         synonyms.clear();
         try {
             query = separateQueryFromSynonyms(query.toUpperCase().trim());
-
             setQueryPattern();
         } catch (Exception e) {
             return false;
@@ -80,7 +79,9 @@ class Validator {
                 getRelRefPattern("FOLLOWS") + "|" +
                 getRelRefPattern("FOLLOWS\\*") + "|" +
                 getRelRefPattern("CALLS") + "|" +
-                getRelRefPattern("CALLS\\*") +
+                getRelRefPattern("CALLS\\*") + "|" +
+                getRelRefPattern("NEXT") + "|" +
+                getRelRefPattern("NEXT\\*") +
                 ")" +
                 "(\\s+AND\\s+(" +
                 getRelRefPattern("MODIFIES") + "|" +
@@ -90,7 +91,9 @@ class Validator {
                 getRelRefPattern("FOLLOWS") + "|" +
                 getRelRefPattern("FOLLOWS\\*") + "|" +
                 getRelRefPattern("CALLS") + "|" +
-                getRelRefPattern("CALLS\\*") +
+                getRelRefPattern("CALLS\\*") + "|" +
+                getRelRefPattern("NEXT") + "|" +
+                getRelRefPattern("NEXT\\*") +
                 "))*)?";
     }
 

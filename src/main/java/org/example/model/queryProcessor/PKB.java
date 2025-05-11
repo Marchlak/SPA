@@ -33,6 +33,9 @@ public class PKB {
     private final Map<String, Set<Integer>> varToStmtsUsingIt = new HashMap<>();
     private final Map<String, Set<String>> procToVarsUsedInIt = new HashMap<>();
 
+    private final Map<Integer, Set<Integer>> nextMap = new HashMap<>();
+    private final Map<Integer, Set<Integer>> nextStarMap = new HashMap<>();
+
     public Set<Integer> getStmtsUsingVar(String varName) {
         return varToStmtsUsingIt.getOrDefault(varName, new HashSet<>());
     }
@@ -337,4 +340,21 @@ public void printState() {
     public Set<String> getAllVariables() {
         return new HashSet<>(variables);
     }
+
+    public void addNext(int from, int to) {
+        nextMap.computeIfAbsent(from, k -> new HashSet<>()).add(to);
+    }
+
+    public Set<Integer> getNext(int stmt) {
+        return nextMap.getOrDefault(stmt, Set.of());
+    }
+
+    public void addNextStar(int from, int to) {
+        nextStarMap.computeIfAbsent(from, k -> new HashSet<>()).add(to);
+    }
+
+    public Set<Integer> getNextStar(int stmt) {
+        return nextStarMap.getOrDefault(stmt, Set.of());
+    }
+
 }
