@@ -149,8 +149,16 @@ public class QueryEvaluator {
             if (parents.isEmpty()) {
                 partialSolutions.get(left).add("none");
             } else {
-                for (int p : parents)
-                    partialSolutions.get(left).add(String.valueOf(p));
+                if (partialSolutions.containsKey("W") && partialSolutions.size()>1) {
+                    Set<String> rightResults = new HashSet<>();
+                    for (int w : pkb.getAllStmts()) {
+                        rightResults.add(String.valueOf(w));
+                    }
+                    partialSolutions.put("W", rightResults);
+                } else {
+                    for (int p : parents)
+                        partialSolutions.get(left).add(String.valueOf(p));
+                }
             }
         }
         if (isNumeric(left) && synonymsContain(right)) {
