@@ -1,7 +1,6 @@
 package org.example.model.queryProcessor;
 
 import org.example.model.enums.EntityType;
-
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -26,11 +25,17 @@ public class QueryEvaluator {
             System.out.println("#Query is not valid");
             return Collections.emptySet();
         }
+
         synonyms = validator.getSynonyms();
         String[] split = query.split(";");
         String queryToProcess = toUpperCaseOutsideQuotes(split[split.length - 1].trim());
         queryToProcess = transformQueryToApplyWith(queryToProcess);
+        boolean isBooleanQuery = queryToProcess.trim().toUpperCase().startsWith("SELECT BOOLEAN");
         Set<String> result = processQuery(queryToProcess);
+        if (isBooleanQuery) {
+            return Set.of(result.isEmpty() || result.contains("none") ? "false" : "true");
+        }
+
         if (result.isEmpty()) result.add("none");
         return result;
     }
@@ -149,7 +154,6 @@ public class QueryEvaluator {
                 result.add(new Relationship(type, arg1 + ", " + arg2));
             }
         }
-
         return result;
     }
 
@@ -594,5 +598,95 @@ public class QueryEvaluator {
 
     private boolean isProcSyn(String name) {
         return getSynType(name) == SynonymType.PROCEDURE;
+    }
+
+    private void handleNext(String left, String right,
+                            Map<String, Set<String>> partial) {
+
+        if (isNumeric(left) && isNumeric(right)) {
+            int l = Integer.parseInt(left);
+            int r = Integer.parseInt(right);
+
+            if (pkb.getNext(l).contains(r)) {
+                partial.put(BOOL_SENTINEL, Set.of("✓"));
+            } else {
+                partial.clear();
+            }
+            return;
+        }
+
+        if (isNumeric(left) && synonymsContain(right)) {
+            int l = Integer.parseInt(left);
+            partial.putIfAbsent(right, new HashSet<>());
+            pkb.getNext(l).forEach(n -> partial.get(right).add(String.valueOf(n)));
+            return;
+        }
+
+        if (synonymsContain(left) && isNumeric(right)) {
+            int r = Integer.parseInt(right);
+            partial.putIfAbsent(left, new HashSet<>());
+            for (int s : pkb.getAllStmts()) {
+                if (pkb.getNext(s).contains(r)) {
+                    partial.get(left).add(String.valueOf(s));
+                }
+            }
+            return;
+        }
+
+        if (synonymsContain(left) && synonymsContain(right)) {
+            partial.putIfAbsent(left,  new HashSet<>());
+            partial.putIfAbsent(right, new HashSet<>());
+            for (int from : pkb.getAllStmts()) {
+                for (int to : pkb.getNext(from)) {
+                    partial.get(left).add(String.valueOf(from));
+                    partial.get(right).add(String.valueOf(to));
+                }
+            }
+        }
+    }
+
+    private void handleNextStar(String left, String right,
+                                Map<String, Set<String>> partial) {
+
+        if (isNumeric(left) && isNumeric(right)) {
+            int l = Integer.parseInt(left);
+            int r = Integer.parseInt(right);
+
+            if (pkb.getNextStar(l).contains(r)) {
+                partial.put(BOOL_SENTINEL, Set.of("✓"));
+            } else {
+                partial.clear();
+            }
+            return;
+        }
+
+        if (isNumeric(left) && synonymsContain(right)) {
+            int l = Integer.parseInt(left);
+            partial.putIfAbsent(right, new HashSet<>());
+            pkb.getNextStar(l).forEach(n -> partial.get(right).add(String.valueOf(n)));
+            return;
+        }
+
+        if (synonymsContain(left) && isNumeric(right)) {
+            int r = Integer.parseInt(right);
+            partial.putIfAbsent(left, new HashSet<>());
+            for (int s : pkb.getAllStmts()) {
+                if (pkb.getNextStar(s).contains(r)) {
+                    partial.get(left).add(String.valueOf(s));
+                }
+            }
+            return;
+        }
+
+        if (synonymsContain(left) && synonymsContain(right)) {
+            partial.putIfAbsent(left,  new HashSet<>());
+            partial.putIfAbsent(right, new HashSet<>());
+            for (int from : pkb.getAllStmts()) {
+                for (int to : pkb.getNextStar(from)) {
+                    partial.get(left).add(String.valueOf(from));
+                    partial.get(right).add(String.valueOf(to));
+                }
+            }
+        }
     }
 }

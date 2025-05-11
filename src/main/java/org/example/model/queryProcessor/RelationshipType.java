@@ -8,8 +8,9 @@ enum RelationshipType {
     PARENT("PARENT"),
     PARENT_STAR("PARENT\\*"),
     MODIFIES("MODIFIES"),
-    USES("USES");
-
+    USES("USES"),
+    NEXT("NEXT"),
+    NEXT_STAR("NEXT\\*");
 
     private final String type;
 

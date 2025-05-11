@@ -3,16 +3,15 @@ package org.example.model.queryProcessor;
 import org.example.model.ast.TNode;
 import org.example.model.enums.EntityType;
 
-import java.util.ArrayDeque;
-import java.util.Deque;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
 public class DesignExtractor {
     private final PKB pkb;
     private int currentStmtNumber = 1;
     private final Deque<Integer> parentStack = new ArrayDeque<>();
     private String currentProcedure;
+    private final Map<Integer, Set<Integer>> cfg = new HashMap<>();
+    private final Map<Integer, List<Runnable>> pendingAfterIfEnds = new HashMap<>();
 
     public DesignExtractor(PKB pkb) {
         this.pkb = pkb;
@@ -27,6 +26,7 @@ public class DesignExtractor {
         }
         propagateCallModifies();
         propagateCallUses();
+        extractNextRelations();
     }
 
     private void processProcedure(TNode procNode) {
@@ -39,21 +39,30 @@ public class DesignExtractor {
 
     private void processStmtList(TNode stmtListNode) {
         TNode stmt = stmtListNode.getFirstChild();
-        Integer prevStmt = null;
+        Integer prev = null;
+
         while (stmt != null) {
-            int currentStmt = currentStmtNumber++;
-            pkb.addStmt(currentStmt, stmt.getType());
-            if (!parentStack.isEmpty()) {
-                pkb.setParent(parentStack.peek(), currentStmt);
+            int curr = currentStmtNumber++;
+            pkb.addStmt(curr, stmt.getType());
+
+            /* 1. relacje Parent / Follows / Next */
+            if (!parentStack.isEmpty()) pkb.setParent(parentStack.peek(), curr);
+            if (prev != null) {
+                pkb.setFollows(prev, curr);
+                addNextEdge(prev, curr);
             }
-            if (prevStmt != null) {
-                pkb.setFollows(prevStmt, currentStmt);
-            }
-            prevStmt = currentStmt;
-            processStmt(stmt, currentStmt);
+            prev = curr;
+
+            /* 2. jeśli ktoś czekał na numer „następnej” */
+            List<Runnable> hooks = pendingAfterIfEnds.remove(curr - 1);
+            if (hooks != null) hooks.forEach(Runnable::run);
+
+            /* 3. obsługa konkretnego typu stmt */
+            processStmt(stmt, curr);
             stmt = stmt.getRightSibling();
         }
     }
+
 
     private void processStmt(TNode stmt, int stmtNumber) {
         switch (stmt.getType()) {
@@ -103,27 +112,28 @@ public class DesignExtractor {
         }
     }
 
-    private void processWhile(TNode whileNode, int stmtNumber) {
-        // Handle control variable (Uses)
+    private void processWhile(TNode whileNode, int condStmtNr) {
         TNode cond = whileNode.getFirstChild();
-        Set<String> condVars = extractVariablesFromNode(cond);
-        for (String var : condVars) {
-            pkb.addVariable(var);
-            pkb.setUsesStmt(stmtNumber, var);
-            if (currentProcedure != null) {
-                pkb.setUsesProc(currentProcedure, var);
-            }
-            // Propagate to parent containers
-            if (!parentStack.isEmpty()) {
-                pkb.propagateUsesToParent(stmtNumber, var);
-            }
+        for (String v : extractVariablesFromNode(cond)) {
+            pkb.addVariable(v);
+            pkb.setUsesStmt(condStmtNr, v);
+            if (currentProcedure != null) pkb.setUsesProc(currentProcedure, v);
+            if (!parentStack.isEmpty()) pkb.propagateUsesToParent(condStmtNr, v);
         }
 
-        parentStack.push(stmtNumber);
+        parentStack.push(condStmtNr);
         TNode stmtList = cond.getRightSibling();
+
+        int firstInBody = currentStmtNumber;
         processStmtList(stmtList);
+        int lastInBody  = currentStmtNumber - 1;
+
         parentStack.pop();
+
+        addNextEdge(condStmtNr, firstInBody);
+        addNextEdge(lastInBody, condStmtNr);
     }
+
 
     private void processCall(TNode callNode, int stmtNumber) {
         TNode procNameNode = callNode.getFirstChild();
@@ -157,28 +167,40 @@ public class DesignExtractor {
             }
         });
     }
-    private void processIf(TNode ifNode, int stmtNumber) {
-        // Handle control variable (Uses)
+    private void processIf(TNode ifNode, int ifStmtNr) {
+
         TNode cond = ifNode.getFirstChild();
-        Set<String> condVars = extractVariablesFromCond(cond);
-        for (String var : condVars) {
-            pkb.addVariable(var);
-            pkb.setUsesStmt(stmtNumber, var);
-            if (currentProcedure != null) {
-                pkb.setUsesProc(currentProcedure, var);
-            }
-            // Propagate to parent containers
-            if (!parentStack.isEmpty()) {
-                pkb.propagateUsesToParent(stmtNumber, var);
-            }
+        for (String v : extractVariablesFromCond(cond)) {
+            pkb.addVariable(v);
+            pkb.setUsesStmt(ifStmtNr, v);
+            if (currentProcedure != null) pkb.setUsesProc(currentProcedure, v);
+            if (!parentStack.isEmpty()) pkb.propagateUsesToParent(ifStmtNr, v);
         }
 
-        parentStack.push(stmtNumber);
-        TNode thenStmtList = cond.getRightSibling();
-        TNode elseStmtList = thenStmtList.getRightSibling();
-        processStmtList(thenStmtList);
-        processStmtList(elseStmtList);
+        parentStack.push(ifStmtNr);
+        TNode thenList  = cond.getRightSibling();
+        TNode elseList  = thenList.getRightSibling();
+
+        int thenStart  = currentStmtNumber;
+        processStmtList(thenList);
+        int thenEnd    = currentStmtNumber - 1;
+
+        int elseStart  = currentStmtNumber;
+        processStmtList(elseList);
+        int elseEnd    = currentStmtNumber - 1;
+
         parentStack.pop();
+
+        addNextEdge(ifStmtNr, thenStart);
+        addNextEdge(ifStmtNr, elseStart);
+
+
+        pendingAfterIfEnds
+                .computeIfAbsent(thenEnd, k -> new ArrayList<>())
+                .add(() -> addNextEdge(thenEnd, currentStmtNumber));
+        pendingAfterIfEnds
+                .computeIfAbsent(elseEnd, k -> new ArrayList<>())
+                .add(() -> addNextEdge(elseEnd, currentStmtNumber));
     }
 
     private Set<String> extractVariablesFromNode(TNode node) {
@@ -261,6 +283,38 @@ public class DesignExtractor {
             for (String var : pkb.getUsedByProc(callee)) {
                 pkb.setUsesStmt(callStmt, var);
                 pkb.propagateUsesToParent(callStmt, var);
+            }
+        }
+    }
+
+    private int getLastStatementIn(TNode stmtListNode) {
+        TNode last = stmtListNode.getFirstChild();
+        TNode current = last;
+        while (current != null) {
+            last = current;
+            current = current.getRightSibling();
+        }
+        return currentStmtNumber - 1;
+    }
+
+    private void addNextEdge(int from, int to) {
+        pkb.addNext(from, to);
+        cfg.computeIfAbsent(from, k -> new HashSet<>()).add(to);
+    }
+
+    private void extractNextRelations() {
+        for (Integer from : cfg.keySet()) {
+            Set<Integer> visited = new HashSet<>();
+            Deque<Integer> stack = new ArrayDeque<>();
+            stack.push(from);
+            while (!stack.isEmpty()) {
+                int curr = stack.pop();
+                for (int next : cfg.getOrDefault(curr, Set.of())) {
+                    if (visited.add(next)) {
+                        pkb.addNextStar(from, next);
+                        stack.push(next);
+                    }
+                }
             }
         }
     }

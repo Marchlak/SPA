@@ -55,10 +55,12 @@ public class Main {
         String programFilePath = "./simple/simple_sources/source1.txt";
         String[] queryFilesPaths = {"./simple/tests/test_calls_source1.txt"};
 
-        for (String queryFile : queryFilesPaths) {
-            System.out.println("\n🧪 Running tests from: " + queryFile);
-            runTests(programFilePath, queryFile);
-        }
+           for (String queryFile : queryFilesPaths) {
+               System.out.println("\n🧪 Running tests from: \n" +
+                       "Program file:" + programFilePath + "\n" +
+                       "Query file:" + queryFile + "\n");
+               runTests(programFilePath, queryFile);
+           }
     }
 
     private static void runTests(String programFile, String queryFile) {
