@@ -129,8 +129,8 @@ public class Main {
 
 
     public static void main(String[] args) {
-//        testRun(args);
-        defaultRun(args);
+         testRun(args);
+     //  defaultRun(args);
     }
 
 }

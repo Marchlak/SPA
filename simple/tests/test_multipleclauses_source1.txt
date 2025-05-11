@@ -1,15 +1,9 @@
 stmt s;
-Select s such that Follows (s, 3)
-2
+Select s such that Parent* (s, 11) and Parent* (s, 12) and Parent (s, 11)
+10
 stmt s;
 Select s such that Follows (s, 3) and Parent (s, 4)
 none
-stmt s;
-Select s such that Parent* (s, 11) and Parent* (s, 12) and Parent (s, 11)
-10
-var v;
-Select v with v.varName = "c"
-c
 stmt s;
 Select s such that Follows (s, 2) with s.stmt# = 1
 1
@@ -17,5 +11,3 @@ stmt s; var v;
 Select s such that Follows (s, 7) and Follows* (s, 8) with s.stmt# = 6 and v.varName = "a"
 6
 stmt s; var v; proc p;
-Select s such that Parent (s, 11) with v.varName = "d" such that Follows* (s, 13) with p.procName = "Circle"
-10

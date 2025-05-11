@@ -424,58 +424,39 @@ public class QueryEvaluator {
         }
     }
 
-//
-//  private void handleModifies(String left, String right, Map<String, Set<String>> partialSolutions) {
-//    if (isNumeric(left) && synonymsContain(right)) {
-//      int stmt = Integer.parseInt(left);
-//      Set<String> modifiedVars = pkb.getModifiedByStmt(stmt);
-//      partialSolutions.get(right).addAll(modifiedVars);
-//    }
-//    if (!isNumeric(left) && synonymsContain(left) && right.startsWith("\"") && right.endsWith("\"")) {
-//    }
-//  }
-
     private Set<String> finalizeResult(String query, Map<String, Set<String>> partialSolutions) {
-        String selectSyn = query.split("SELECT")[1]
-                .trim()
-                .split("SUCH THAT|WITH")[0]
-                .trim();
-        if (selectSyn.contains(" ")) {
-            selectSyn = selectSyn.split("\\s+")[0];
-        }
-
         partialSolutions = handleWith(partialSolutions, query);
 
-        Set<String> initial = partialSolutions.getOrDefault(selectSyn, Collections.emptySet());
+        if (partialSolutions.values().stream().anyMatch(s -> s.stream().anyMatch(v -> "none".equalsIgnoreCase(v)))) {
+            return Set.of("none");
+        }
 
-        Set<String> filtered = initial.stream()
-                .filter(s -> !s.isBlank() && !"none".equalsIgnoreCase(s))
-                .collect(Collectors.toSet());
+        String sel = query.split("SELECT")[1].trim()
+                .split("SUCH THAT|WITH")[0].trim()
+                .split("\\s+")[0].toUpperCase();
 
-        final String selName = selectSyn;   // effectively-final
-        Synonym sel = synonyms.stream()
-                .filter(syn -> syn.name().equalsIgnoreCase(selName))
+        Set<String> result = new LinkedHashSet<>(partialSolutions.getOrDefault(sel, Set.of()));
+        if (result.isEmpty()) return Set.of("none");
+
+        Synonym targetSyn = synonyms.stream()
+                .filter(s -> s.name().equalsIgnoreCase(sel))
                 .findFirst()
                 .orElse(null);
 
-        if (sel != null) {
-            SynonymType st = sel.type();
-            EntityType wanted = null;
-            switch (st) {
-                case ASSIGN -> wanted = EntityType.ASSIGN;
-                case WHILE  -> wanted = EntityType.WHILE;
-                case IF     -> wanted = EntityType.IF;
-                case CALL   -> wanted = EntityType.CALL;
-                default     -> wanted = null;
-            }
-            if (wanted != null) {
-                EntityType filterType = wanted;
-                filtered = filtered.stream()
-                        .filter(s -> {
+        if (targetSyn != null) {
+            EntityType filter = switch (targetSyn.type()) {
+                case ASSIGN -> EntityType.ASSIGN;
+                case WHILE  -> EntityType.WHILE;
+                case IF     -> EntityType.IF;
+                case CALL   -> EntityType.CALL;
+                default     -> null;
+            };
+            if (filter != null) {
+                result = result.stream()
+                        .filter(v -> {
                             try {
-                                int num = Integer.parseInt(s);
-                                return pkb.getStmtType(num) == filterType;
-                            } catch (Exception ex) {
+                                return pkb.getStmtType(Integer.parseInt(v)) == filter;
+                            } catch (Exception e) {
                                 return false;
                             }
                         })
@@ -483,19 +464,13 @@ public class QueryEvaluator {
             }
         }
 
-        List<String> sorted = new ArrayList<>(filtered);
+        if (result.isEmpty()) return Set.of("none");
+
+        List<String> sorted = new ArrayList<>(result);
         sorted.sort((a, b) -> {
-            try {
-                return Integer.compare(Integer.parseInt(a), Integer.parseInt(b));
-            } catch (NumberFormatException e) {
-                return a.compareTo(b);
-            }
+            try { return Integer.compare(Integer.parseInt(a), Integer.parseInt(b)); }
+            catch (NumberFormatException e) { return a.compareTo(b); }
         });
-
-        if (sorted.isEmpty()) {
-            return Set.of("none");
-        }
-
         return new LinkedHashSet<>(sorted);
     }
 
