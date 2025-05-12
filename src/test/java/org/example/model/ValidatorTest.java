@@ -13,8 +13,6 @@ class ValidatorTest {
         assertTrue(validator.isValid(query));
     }
 
-
-
     @Test
     void testInvalidMissingSelect() {
         Validator validator = new Validator();
@@ -28,13 +26,6 @@ class ValidatorTest {
         String query = "assign a; select a such that modifies(a v)";
         assertFalse(validator.isValid(query));
     }
-
-//    @Test
-//    void testInvalidUnknownSynonymInSuchThat() {
-//        Validator validator = new Validator();
-//        String query = "assign a; variable v; select a such that parent(a, v)";
-//        assertFalse(validator.isValid(query));
-//    }
 
     @Test
     void testValidBooleanWithSynonym() {
@@ -142,6 +133,71 @@ class ValidatorTest {
         assertTrue(v.isValid(q));
     }
 
+    @Test
+    void testQueryWithMultiSpaces() {
+        Validator v = new Validator();
+        String query = "assign a; select  a such that modifies(a, a)";
+        assertTrue(v.isValid(query));
+    }
 
+    @Test
+    void testQueryWithSpaceBetweenStar() {
+        Validator v = new Validator();
+        String query = "while w; Select w such that parent * (w, 2)";
+        assertFalse(v.isValid(query));
+    }
 
+    @Test
+    void testInvalidModifiesWithConstant() {
+        Validator v = new Validator();
+        String q = "assign a; Select a such that Modifies(a, 10)";
+        assertFalse(v.isValid(q));
+    }
+
+    @Test
+    void testInvalidExtraSemicolon() {
+        Validator v = new Validator();
+        String q = "assign a;; Select a";
+        assertFalse(v.isValid(q));
+    }
+
+    @Test
+    void testInvalidWithDifferentAttrTypes() {
+        Validator v = new Validator();
+        String q = "stmt s; variable v; Select s with s.stmt# = v.varName";
+        assertFalse(v.isValid(q));
+    }
+
+    @Test
+    void testQueryWithTabs() {
+        Validator v = new Validator();
+        String q = "assign a; variable v;\t Select a such that Uses(a, v)";
+        assertTrue(v.isValid(q));
+    }
+
+//    @Test
+//    void testInvalidUnknownSynonymInSuchThat() {
+//        Validator validator = new Validator();
+//        String query = "assign a; variable v; select a such that parent(a, v)";
+//        assertFalse(validator.isValid(query));
+//    }
+
+    @Test
+    void testInvalidMissedSemicolonAfterDeclaration() {
+        Validator validator = new Validator();
+        String query = "while w; variable v select a such that parent(w, v)";
+        assertFalse(validator.isValid(query));
+    }
+
+    @Test
+    void testMissedVariable() {
+        Validator v = new Validator();
+        String q = "assign a; var v; select a such that parent(w, v)";
+    }
+
+    @Test
+    void testMissedVariableType() {
+        Validator v = new Validator();
+        String q = "w; var v; select a such that parent(w, v)";
+    }
 }
