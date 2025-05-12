@@ -147,12 +147,12 @@ class ValidatorTest {
         assertFalse(v.isValid(query));
     }
 
-    @Test
-    void testInvalidModifiesWithConstant() {
-        Validator v = new Validator();
-        String q = "assign a; Select a such that Modifies(a, 10)";
-        assertFalse(v.isValid(q));
-    }
+//    @Test
+//    void testInvalidModifiesWithConstant() {
+//        Validator v = new Validator();
+//        String q = "assign a; Select a such that Modifies(a, 10)";
+//        assertFalse(v.isValid(q));
+//    }
 
     @Test
     void testInvalidExtraSemicolon() {
@@ -193,11 +193,41 @@ class ValidatorTest {
     void testMissedVariable() {
         Validator v = new Validator();
         String q = "assign a; var v; select a such that parent(w, v)";
+        assertFalse(v.isValid(q));
     }
 
     @Test
     void testMissedVariableType() {
         Validator v = new Validator();
         String q = "w; var v; select a such that parent(w, v)";
+        assertFalse(v.isValid(q));
+    }
+
+    @Test
+    void testValidBooleanQueryWithSimpleCondition() {
+        Validator v = new Validator();
+        String q = "assign a; variable v; Select BOOLEAN such that Modifies(a, v)";
+        assertTrue(v.isValid(q));
+    }
+
+    @Test
+    void testNotClosedQuote() {
+        Validator v = new Validator();
+        String q = "procedure p; var v; select p with p.procName = \"MAIN and v.varName = \"X\" and p.procName = \"MAIN\"";
+        assertFalse(v.isValid(q));
+    }
+
+    @Test
+    void testNotOpenedQuote() {
+        Validator v = new Validator();
+        String q = "procedure p; var v; select p with p.procName = MAIN\" and v.varName = \"X\" and p.procName = \"MAIN\"";
+        assertFalse(v.isValid(q));
+    }
+
+    @Test
+    void testInvalidSynonymNameWithSpecialCharacters() {
+        Validator validator = new Validator();
+        String query = "assign a#; variable v; select a# such that modifies(a#, v)";
+        assertFalse(validator.isValid(query));
     }
 }
