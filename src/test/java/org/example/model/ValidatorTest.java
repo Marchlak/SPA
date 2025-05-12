@@ -230,4 +230,32 @@ class ValidatorTest {
         String query = "assign a#; variable v; select a# such that modifies(a#, v)";
         assertFalse(validator.isValid(query));
     }
+
+    @Test
+    void testEmptyQuery() {
+        Validator validator = new Validator();
+        String query = "";
+        assertFalse(validator.isValid(query));
+    }
+
+    @Test
+    void testStarNotWithRelation() {
+        Validator validator = new Validator();
+        String query = "while* w; variable v select a such that parent(w, v)";
+        assertFalse(validator.isValid(query));
+    }
+
+    @Test
+    void testInvalidSynonymWithComma() {
+        Validator validator = new Validator();
+        String query = "assign a, b, c; variable v; select a such that modifies(a, v)";
+        assertFalse(validator.isValid(query));
+    }
+
+    @Test
+    void testQueryVariableAsNotCharacter() {
+        Validator validator = new Validator();
+        String query = "assign <; select < such that modifies(<, <)";
+        assertFalse(validator.isValid(query));
+    }
 }
