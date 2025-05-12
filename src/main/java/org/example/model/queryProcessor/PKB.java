@@ -146,8 +146,11 @@ public class PKB {
         modifiesStmt.computeIfAbsent(stmt, k -> new HashSet<>()).add(var);
     }
 
-    public void setModifiesProc(String proc, String var) {
-        modifiesProc.computeIfAbsent(proc, k -> new HashSet<>()).add(var);
+    public boolean setModifiesProc(String proc, String var) {
+        if (!modifiesProc.containsKey(proc)) {
+            modifiesProc.put(proc, new HashSet<>());
+        }
+        return modifiesProc.get(proc).add(var);
     }
 
     public Set<String> getModifiedByStmt(int stmt) {

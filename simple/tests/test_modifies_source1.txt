@@ -6,7 +6,7 @@ Select v such that Modifies (4, v)
 a, c, d
 variable v;
 Select v such that Modifies (6, v)
-c
+t
 variable v;
 Select v such that Modifies (18, v)
 a, c, d, t

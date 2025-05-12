@@ -228,6 +228,7 @@ public class DesignExtractor {
     }
 
     private void propagateCallModifies() {
+        // Najpierw przetwórz bezpośrednie wywołania
         for (Integer stmt : pkb.getAllCallStmts()) {
             String proc = pkb.getCalledProcByStmt(stmt);
             for (String var : pkb.getModifiedByProc(proc)) {
@@ -235,6 +236,23 @@ public class DesignExtractor {
                 pkb.propagateModifiesToParent(stmt, var);
             }
         }
+
+        // Następnie przetwórz wywołania rekurencyjnie
+        boolean changed;
+        do {
+            changed = false;
+            for (String caller : pkb.getAllProcedures()) {
+                Set<String> calledProcs = pkb.getCallsStar(caller);
+                for (String callee : calledProcs) {
+                    Set<String> calleeModifies = pkb.getModifiedByProc(callee);
+                    for (String var : calleeModifies) {
+                        if (pkb.setModifiesProc(caller, var)) {
+                            changed = true;
+                        }
+                    }
+                }
+            }
+        } while (changed);
     }
 
     private void propagateCallUses() {
