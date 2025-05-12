@@ -258,4 +258,18 @@ class ValidatorTest {
         String query = "assign <; select < such that modifies(<, <)";
         assertFalse(validator.isValid(query));
     }
+
+    @Test
+    void testNumberAsSecondParameter() {
+        Validator validator = new Validator();
+        String query = "assign s1; select s1 such that modifies(s1, 10) and uses(s1, 20)";
+        assertFalse(validator.isValid(query));
+    }
+
+    @Test
+    void testWithClauseWithoutCondition() {
+        Validator validator = new Validator();
+        String query = "assign a; select a such that modifies(a, a) with";
+        assertFalse(validator.isValid(query));
+    }
 }
