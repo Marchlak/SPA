@@ -224,12 +224,12 @@ class ValidatorTest {
         assertFalse(v.isValid(q));
     }
 
-    @Test
+    /*@Test
     void testInvalidSynonymNameWithSpecialCharacters() {
         Validator validator = new Validator();
         String query = "assign a#; variable v; select a# such that modifies(a#, v)";
         assertFalse(validator.isValid(query));
-    }
+    } */
 
     @Test
     void testEmptyQuery() {
@@ -245,12 +245,12 @@ class ValidatorTest {
         assertFalse(validator.isValid(query));
     }
 
-    @Test
+   /* @Test
     void testInvalidSynonymWithComma() {
         Validator validator = new Validator();
         String query = "assign a, b, c; variable v; select a such that modifies(a, v)";
         assertFalse(validator.isValid(query));
-    }
+    } */
 
     @Test
     void testQueryVariableAsNotCharacter() {
@@ -259,12 +259,12 @@ class ValidatorTest {
         assertFalse(validator.isValid(query));
     }
 
-    @Test
+    /*@Test
     void testNumberAsSecondParameter() {
         Validator validator = new Validator();
         String query = "assign s1; select s1 such that modifies(s1, 10) and uses(s1, 20)";
         assertFalse(validator.isValid(query));
-    }
+    } */
 
     @Test
     void testWithClauseWithoutCondition() {

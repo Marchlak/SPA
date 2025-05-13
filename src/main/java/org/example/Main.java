@@ -53,7 +53,7 @@ public class Main {
 
     public static void testRun(String[] args) {
         String programFilePath = "./simple/simple_sources/source1.txt";
-        String[] queryFilesPaths = {"./simple/tests/test_multipleclauses_source1.txt"};
+        String[] queryFilesPaths = {"./simple/tests/test_with_source1.txt"};
 
         for (String queryFile : queryFilesPaths) {
             System.out.println("\n🧪 Running tests from: " + queryFile);

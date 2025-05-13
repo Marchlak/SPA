@@ -50,3 +50,5 @@ g
 7src/test/java/org/example/model/HandbookParserTest.java,b\9\b9cfc6397906b35bc7f7a2a0c7c9c63d82082942
 _
 /src/test/java/org/example/model/ParserTest.java,8\5\8579796cffae282c8b9870fb585fbad8374fb10d
+b
+2src/test/java/org/example/model/ValidatorTest.java,f\c\fcb2f6dda41e2f75e98f92dfd804fe051eef8361

@@ -1,14 +1,11 @@
 package org.example.model.queryProcessor;
 
 import org.example.model.enums.EntityType;
-import org.example.model.queryProcessor.Synonym;
-import org.example.model.queryProcessor.SynonymType;
 
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class QueryEvaluator {
     private final PKB pkb;
@@ -32,9 +29,70 @@ public class QueryEvaluator {
         synonyms = validator.getSynonyms();
         String[] split = query.split(";");
         String queryToProcess = toUpperCaseOutsideQuotes(split[split.length - 1].trim());
+        queryToProcess = transformQueryToApplyWith(queryToProcess);
         Set<String> result = processQuery(queryToProcess);
         if (result.isEmpty()) result.add("none");
         return result;
+    }
+
+    private String transformQueryToApplyWith(String query) {
+        StringBuilder sb = new StringBuilder();
+        List<String> afterSelect = new ArrayList<>();
+        List<String> withSynonyms = extractSynonymsUsedInWith(query);
+
+        String[] parted = query.split("SUCH THAT");
+        sb.append(parted[0]);
+        if (parted.length > 0) {
+            sb.append("SUCH THAT");
+        }
+        for (int i = 1; i < parted.length; i++) {
+            String[] withoutWith = parted[i].split("WITH");
+            afterSelect.addAll(List.of(withoutWith[0].split(" |,|\\(|\"|\\)")));
+        }
+        int relationshipArgsCounter = 0;
+        for (String s : afterSelect) {
+            if (s.isEmpty()) continue;
+            if (relationshipArgsCounter > 0) {
+                if (relationshipArgsCounter == 1) {
+                    sb.append(", ");
+                }
+                if (withSynonyms.contains(s)) {
+                    sb.append(returnWithValue(s, query));
+                } else {
+                    sb.append(s);
+                }
+                if (relationshipArgsCounter == 1) {
+                    sb.append(")");
+                }
+                relationshipArgsCounter--;
+            }
+            if (s.equals("PARENT") || s.equals("PARENT*") || s.equals("FOLLOWS")
+                    || s.equals("FOLLOWS*") || s.equals("CALLS") || s.equals("CALLS*") ||
+                    s.equals("MODIFIES") || s.equals("USES")) {
+                relationshipArgsCounter = 2;
+                sb.append(" ").append(s).append(" (");
+            }
+        }
+        return sb.toString();
+    }
+
+    private List<String> extractSynonymsUsedInWith(String query) {
+        List<String> synonyms = new ArrayList<>();
+        for (WithClause withClause : parseWithClauses(query)) {
+            synonyms.add(withClause.left().split("\\.")[0]);
+        }
+        return synonyms;
+    }
+
+    private String returnWithValue(String synonym, String query) {
+        String value = "";
+        for (WithClause w : parseWithClauses(query)) {
+            if (w.left().split("\\.")[0].equals(synonym)) {
+                value = w.right();
+                break;
+            }
+        }
+        return value;
     }
 
     private Set<String> processQuery(String query) {
@@ -428,8 +486,6 @@ public class QueryEvaluator {
     }
 
     private Set<String> finalizeResult(String query, Map<String, Set<String>> partialSolutions) {
-        partialSolutions = handleWith(partialSolutions, query);
-
         if (partialSolutions.values().stream().anyMatch(s -> s.stream().anyMatch(v -> "none".equalsIgnoreCase(v)))) {
             return Set.of("none");
         }
@@ -493,75 +549,18 @@ public class QueryEvaluator {
             return false;
         }
     }
-    private Map<String, Set<String>> handleWith(Map<String, Set<String>> partialSolutions, String query) {
-        List<WithClause> withClauses = parseWithClauses(query);
-
-        for (WithClause w : withClauses) {
-            String[] leftParts = w.left().split("\\.");
-            if (leftParts.length != 2) continue;
-
-            String synonym = leftParts[0];
-            String attr = leftParts[1].toUpperCase();
-
-            switch (attr) {
-                case "STMT#" -> handleStmtWith(partialSolutions, w, synonym);
-            }
-
-            updateParentRelations(partialSolutions, synonym);
-        }
-
-        return partialSolutions;
-    }
-
-    private void updateParentRelations(Map<String, Set<String>> partialSolutions, String synonym) {
-        for (String otherSyn : partialSolutions.keySet()) {
-            if (otherSyn.equals(synonym)) continue;
-
-            Set<String> candidateValues = new HashSet<>();
-            for (String val : partialSolutions.get(synonym)) {
-                try {
-                    int stmt = Integer.parseInt(val);
-                    int parent = pkb.getParent(stmt);
-                    if (parent != -1) {
-                        candidateValues.add(String.valueOf(parent));
-                    }
-                } catch (Exception ignored) {}
-            }
-
-            if (!candidateValues.isEmpty()) {
-                Set<String> current = partialSolutions.getOrDefault(otherSyn, new HashSet<>());
-                if (current.isEmpty()) {
-                    partialSolutions.put(otherSyn, candidateValues);
-                } else {
-                    current.retainAll(candidateValues);
-                    partialSolutions.put(otherSyn, current);
-                }
-            }
-        }
-    }
-
-    private void handleStmtWith(Map<String, Set<String>> partialSolutions, WithClause w, String synonym) {
-        String expected = w.right().replace(";", "").trim();
-
-        if (!partialSolutions.containsKey(synonym) || partialSolutions.get(synonym).isEmpty()) {
-            partialSolutions.put(synonym, Set.of(expected));
-        } else {
-            Set<String> existing = partialSolutions.get(synonym);
-            Set<String> filtered = existing.stream()
-                    .filter(val -> val.equals(expected))
-                    .collect(Collectors.toSet());
-            partialSolutions.put(synonym, filtered);
-        }
-    }
 
     private List<WithClause> parseWithClauses(String query) {
         String[] split = query.split("WITH");
         List<WithClause> withClauses = new ArrayList<>();
         for (int i = 1; i < split.length; i++) {
-            String clause = split[i].split("SUCH THAT|AND|SELECT")[0].trim();
-            String[] parts = clause.split("=");
-            if (parts.length == 2) {
-                withClauses.add(new WithClause(parts[0].trim(), parts[1].trim()));
+            String[] clauses = split[i].split("SUCH THAT|AND|SELECT");
+            for (int j = 0; j < clauses.length; j++) {
+
+                String[] parts = clauses[j].split("=");
+                if (parts.length == 2) {
+                    withClauses.add(new WithClause(parts[0].trim(), parts[1].trim()));
+                }
             }
         }
         return withClauses;

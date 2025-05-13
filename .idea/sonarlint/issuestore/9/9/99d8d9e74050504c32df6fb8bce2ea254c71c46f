@@ -1,39 +1,42 @@
 
-i
-java:S1301ü"KReplace this "switch" statement by "if" statements to increase readability.(ÍëÑô8¾ì—ªê2
-~
-java:S1488n"\Immediately return this expression instead of assigning it to the temporary variable "args".(àÃà¨ùÿÿÿÿ8¿ì—ªê2
-G	java:S106"+Replace this use of System.out by a logger.(Î»‚8Ÿí—ªê2
-L	java:S106""+Replace this use of System.out by a logger.(Õ‘ºÿøÿÿÿÿ8¢í—ªê2
-p
-java:S3776“"RRefactor this method to reduce its Cognitive Complexity from 16 to the 15 allowed.(åŸæÑ8Éí—ªê2
-p
-java:S3776¿"RRefactor this method to reduce its Cognitive Complexity from 45 to the 15 allowed.(•„‚¸8×í—ªê2
-b
-java:S3358Í"DExtract this nested ternary operation into an independent statement.(Âöİ€8Üí—ªê2
-g
-java:S3358Ñ"DExtract this nested ternary operation into an independent statement.(üÕ†Ñúÿÿÿÿ8İí—ªê2
-]
-java:S6213î":Rename this variable to not match a restricted identifier.(¯áıÿÿÿÿ8æí—ªê2
-X
-java:S6213÷":Rename this variable to not match a restricted identifier.(˜ØñÔ8êí—ªê2
-u
-java:S3776—"RRefactor this method to reduce its Cognitive Complexity from 16 to the 15 allowed.(ÿÓ¹±şÿÿÿÿ8óí—ªê2
-u
-java:S3776¯"RRefactor this method to reduce its Cognitive Complexity from 16 to the 15 allowed.(ãÈÀøÿÿÿÿ8ıí—ªê2
-u
-java:S3776Ú"RRefactor this method to reduce its Cognitive Complexity from 34 to the 15 allowed.(«¶ˆéùÿÿÿÿ8î—ªê2
-\
-java:S1854Ş">Remove this useless assignment to local variable "rightIsNum".(äşÅæ8î—ªê2
-^	java:S125Ë"<This block of commented-out lines of code should be removed.(şÏÛ¸üÿÿÿÿ8î—ªê2
+G	java:S106"+Replace this use of System.out by a logger.(Î»‚8ĞŞêÛì2
+o
+java:S3776&"RRefactor this method to reduce its Cognitive Complexity from 20 to the 15 allowed.(Ÿ“˜€8ÙŞêÛì2
 M
-java:S1481Ş"/Remove this unused "rightIsNum" local variable.(äşÅæ8’î—ªê2
-X
-java:S6213ü":Rename this variable to not match a restricted identifier.(Õè“Ú8˜î—ªê2
-]
-java:S6213†":Rename this variable to not match a restricted identifier.(‹’äûÿÿÿÿ8›î—ªê2
-Y	java:S125˜"<This block of commented-out lines of code should be removed.(†°Â­8Ÿî—ªê2
-?	java:S131ü""Add a default case to this switch.(ÍëÑô8°î—ªê2
+java:S60352"0Replace this alternation with a character class.(¥²ö«8„ØğÛì2
+^
+java:S1117P"<Rename "synonyms" which hides the field declared at line 13.(¶ùÉÄùÿÿÿÿ8†ØğÛì2
+Q
+java:S2864k"4Iterate over the "entrySet" instead of the "keySet".(‚à8ˆØğÛì2
 u
-java:S3776†"RRefactor this method to reduce its Cognitive Complexity from 17 to the 15 allowed.(…İşÄûÿÿÿÿ8¹î—ªê2
-F	java:S108’")Either remove or fill this block of code.(¨šşµ8¿î—ªê2
+java:S3776Ä"RRefactor this method to reduce its Cognitive Complexity from 16 to the 15 allowed.(ãÈÀøÿÿÿÿ8ŸØğÛì2
+p
+java:S3776Ü"RRefactor this method to reduce its Cognitive Complexity from 26 to the 15 allowed.(åŸæÑ8·ØğÛì2
+^
+java:S1854Œ";Remove this useless assignment to local variable "parents".(©ÅØÔøÿÿÿÿ8ºØğÛì2
+O
+java:S1481Œ",Remove this unused "parents" local variable.(©ÅØÔøÿÿÿÿ8½ØğÛì2
+u
+java:S3776š"RRefactor this method to reduce its Cognitive Complexity from 16 to the 15 allowed.(ÿÓ¹±şÿÿÿÿ8ÎØğÛì2
+p
+java:S3776Ş"RRefactor this method to reduce its Cognitive Complexity from 45 to the 15 allowed.(•„‚¸8ƒÙğÛì2
+b
+java:S3358ì"DExtract this nested ternary operation into an independent statement.(Âöİ€8…ÙğÛì2
+g
+java:S3358ğ"DExtract this nested ternary operation into an independent statement.(üÕ†Ñúÿÿÿÿ8‡ÙğÛì2
+]
+java:S6213":Rename this variable to not match a restricted identifier.(¯áıÿÿÿÿ8ŠÙğÛì2
+X
+java:S6213–":Rename this variable to not match a restricted identifier.(˜ØñÔ8‹ÙğÛì2
+u
+java:S3776§"RRefactor this method to reduce its Cognitive Complexity from 34 to the 15 allowed.(«¶ˆéùÿÿÿÿ8°ÙğÛì2
+\
+java:S1854«">Remove this useless assignment to local variable "rightIsNum".(äşÅæ8²ÙğÛì2
+M
+java:S1481«"/Remove this unused "rightIsNum" local variable.(äşÅæ8³ÙğÛì2
+X
+java:S6213É":Rename this variable to not match a restricted identifier.(Õè“Ú8µÙğÛì2
+]
+java:S6213Ó":Rename this variable to not match a restricted identifier.(‹’äûÿÿÿÿ8¶ÙğÛì2
+b
+java:S1612é"?Replace this lambda with method reference '::equalsIgnoreCase'.(œ¨ÆÌşÿÿÿÿ8ºÙğÛì2
