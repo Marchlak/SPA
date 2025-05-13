@@ -40,23 +40,39 @@ public class QueryEvaluator {
     private Set<String> processQuery(String query) {
         List<Relationship> relationships = extractRelationships(query);
         Map<String, Set<String>> partialSolutions = initSynonymMap();
-        for (Relationship r : relationships) {
-            RelationshipType t = r.getType();
-            String left = r.getFirstArg();
-            String right = r.getSecondArg();
+        boolean first = true;
 
-            switch (t) {
-                case CALLS_STAR -> handleCallsStar(left, right, partialSolutions);
-                case PARENT_STAR -> handleParentStar(left, right, partialSolutions);
-                case FOLLOWS_STAR -> handleFollowsStar(left, right, partialSolutions);
-                case CALLS -> handleCalls(left, right, partialSolutions);
-                case PARENT -> handleParent(left, right, partialSolutions);
-                case FOLLOWS -> handleFollows(left, right, partialSolutions);
-                case MODIFIES -> handleModifies(left, right, partialSolutions);
-                case USES -> handleUses(left, right, partialSolutions);
+        for (Relationship r : relationships) {
+            Map<String, Set<String>> localResults = initSynonymMap();
+            applyRelationship(r, localResults);
+
+            for (String syn : localResults.keySet()) {
+                Set<String> vals = localResults.get(syn);
+                if (first) {
+                    partialSolutions.put(syn, new HashSet<>(vals));
+                } else {
+                    partialSolutions.get(syn).retainAll(vals);
+                }
             }
+            first = false;
         }
+
         return finalizeResult(query, partialSolutions);
+    }
+
+    private void applyRelationship(Relationship r, Map<String, Set<String>> partial) {
+        String left = r.getFirstArg();
+        String right = r.getSecondArg();
+        switch (r.getType()) {
+            case CALLS_STAR -> handleCallsStar(left, right, partial);
+            case PARENT_STAR -> handleParentStar(left, right, partial);
+            case FOLLOWS_STAR -> handleFollowsStar(left, right, partial);
+            case CALLS -> handleCalls(left, right, partial);
+            case PARENT -> handleParent(left, right, partial);
+            case FOLLOWS -> handleFollows(left, right, partial);
+            case MODIFIES -> handleModifies(left, right, partial);
+            case USES -> handleUses(left, right, partial);
+        }
     }
 
     private List<Relationship> extractRelationships(String query) {
