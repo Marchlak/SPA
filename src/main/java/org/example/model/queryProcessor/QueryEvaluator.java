@@ -5,6 +5,8 @@ import org.example.model.queryProcessor.Synonym;
 import org.example.model.queryProcessor.SynonymType;
 
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -44,13 +46,13 @@ public class QueryEvaluator {
             String right = r.getSecondArg();
 
             switch (t) {
-                case MODIFIES -> handleModifies(left, right, partialSolutions);
-                case CALLS -> handleCalls(left, right, partialSolutions);
                 case CALLS_STAR -> handleCallsStar(left, right, partialSolutions);
-                case PARENT -> handleParent(left, right, partialSolutions);
                 case PARENT_STAR -> handleParentStar(left, right, partialSolutions);
-                case FOLLOWS -> handleFollows(left, right, partialSolutions);
                 case FOLLOWS_STAR -> handleFollowsStar(left, right, partialSolutions);
+                case CALLS -> handleCalls(left, right, partialSolutions);
+                case PARENT -> handleParent(left, right, partialSolutions);
+                case FOLLOWS -> handleFollows(left, right, partialSolutions);
+                case MODIFIES -> handleModifies(left, right, partialSolutions);
                 case USES -> handleUses(left, right, partialSolutions);
             }
         }
@@ -59,55 +61,55 @@ public class QueryEvaluator {
 
     private List<Relationship> extractRelationships(String query) {
         List<Relationship> result = new ArrayList<>();
-        if (query.contains("CALLS*")) {
-            result.addAll(extractRelationship(query, RelationshipType.CALLS_STAR));
-        }
-        if (query.contains("CALLS")) {
-            result.addAll(extractRelationship(query, RelationshipType.CALLS));
+
+        Pattern pattern = Pattern.compile("\\b(FOLLOWS\\*?|PARENT\\*?|CALLS\\*?|MODIFIES|USES)\\s*\\(([^,\\)]+)\\s*,\\s*([^\\)]+)\\)");
+        Matcher matcher = pattern.matcher(query);
+
+        while (matcher.find()) {
+            String relName = matcher.group(1).toUpperCase();
+            String arg1 = matcher.group(2).trim();
+            String arg2 = matcher.group(3).trim();
+
+            RelationshipType type = parseRelationshipType(relName);
+            if (type != null) {
+                result.add(new Relationship(type, arg1 + ", " + arg2));
+            }
         }
 
-        if (query.contains("PARENT*")) {
-            result.addAll(extractRelationship(query, RelationshipType.PARENT_STAR));
-        } else if (query.contains("PARENT")) {
-            result.addAll(extractRelationship(query, RelationshipType.PARENT));
-        }
-
-        if (query.contains("FOLLOWS*")) {
-            result.addAll(extractRelationship(query, RelationshipType.FOLLOWS_STAR));
-        } else if (query.contains("FOLLOWS")) {
-            result.addAll(extractRelationship(query, RelationshipType.FOLLOWS));
-        }
-
-        if (query.contains("MODIFIES")) {
-            result.addAll(extractRelationship(query, RelationshipType.MODIFIES));
-        }
-
-        if (query.contains("USES")) {
-            result.addAll(extractRelationship(query, RelationshipType.USES));
-        }
         return result;
     }
 
-    private List<Relationship> extractRelationship(String query, RelationshipType type) {
-        List<Relationship> relationships = new ArrayList<>();
-        String regex = type.getType().endsWith("\\*")
-                ? type.getType()
-                : "\\b" + type.getType() + "\\b";
-
-        String[] split = query.split(regex);
-
-        for (int i = 1; i < split.length; i++) {
-            relationships.add(new Relationship(type, extractRelationshipArgs(split[i])));
+    private RelationshipType parseRelationshipType(String name) {
+        switch (name.toUpperCase()) {
+            case "CALLS" -> {
+                return RelationshipType.CALLS;
+            }
+            case "CALLS*" -> {
+                return RelationshipType.CALLS_STAR;
+            }
+            case "PARENT" -> {
+                return RelationshipType.PARENT;
+            }
+            case "PARENT*" -> {
+                return RelationshipType.PARENT_STAR;
+            }
+            case "FOLLOWS" -> {
+                return RelationshipType.FOLLOWS;
+            }
+            case "FOLLOWS*" -> {
+                return RelationshipType.FOLLOWS_STAR;
+            }
+            case "MODIFIES" -> {
+                return RelationshipType.MODIFIES;
+            }
+            case "USES" -> {
+                return RelationshipType.USES;
+            }
+            default -> {
+                return null;
+            }
         }
-        return relationships;
     }
-
-    private String extractRelationshipArgs(String s) {
-        String tmp = s.split("\\)")[0].trim();
-        String args = tmp.substring(1);
-        return args;          // ← zostaw tak, bez .replace("\"","")
-    }
-
 
     private Map<String, Set<String>> initSynonymMap() {
         Map<String, Set<String>> map = new HashMap<>();
@@ -117,26 +119,26 @@ public class QueryEvaluator {
         return map;
     }
 
-    private void handleParent(String left, String right, Map<String, Set<String>> partialSolutions) {
-        if (isNumeric(right) && synonymsContain(left)) {
-            int c = Integer.parseInt(right);
-            Integer i = pkb.getParent(c);
-            if (i == -1) {
-                partialSolutions.get(left).add("none");
-                return;
+    private void handleCallsStar(String left, String right, Map<String, Set<String>> partialSolutions) {
+        String caller = left.replace("\"", "");
+        String callee = right.replace("\"", "");
+
+        if (synonymsContain(left) && synonymsContain(right)) {
+            for (String proc : pkb.getCallsMap().keySet()) {
+                Set<String> allCallees = pkb.getCallsStar(proc);
+                for (String c : allCallees) {
+                    partialSolutions.get(left).add(proc);
+                    partialSolutions.get(right).add(c);
+                }
             }
-            int p = i;
-            if (p > 0)
-                partialSolutions.get(left).add(String.valueOf(p));
-        }
-        if (isNumeric(left) && synonymsContain(right)) {
-            int p = Integer.parseInt(left);
-            Set<Integer> kids = pkb.getParentedBy(p);
-            if (kids.isEmpty()) {
-                partialSolutions.get(right).add("none");
-            } else {
-                for (int k : kids)
-                    partialSolutions.get(right).add(String.valueOf(k));
+        } else if (isStringLiteral(left) && synonymsContain(right)) {
+            Set<String> callees = pkb.getCallsStar(caller);
+            partialSolutions.get(right).addAll(callees);
+        } else if (isStringLiteral(right) && synonymsContain(left)) {
+            for (String proc : pkb.getCallsMap().keySet()) {
+                if (pkb.getCallsStar(proc).contains(callee)) {
+                    partialSolutions.get(left).add(proc);
+                }
             }
         }
     }
@@ -169,6 +171,84 @@ public class QueryEvaluator {
             } else {
                 for (int d : descendants)
                     partialSolutions.get(right).add(String.valueOf(d));
+            }
+        }
+    }
+
+    private void handleFollowsStar(String left, String right, Map<String, Set<String>> partialSolutions) {
+        if (isNumeric(right) && synonymsContain(left)) {
+            int c = Integer.parseInt(right);
+            Set<Integer> parents = pkb.getFollowedByStar(c);
+            for (int p : parents)
+                partialSolutions.get(left).add(String.valueOf(p));
+        }
+        if (isNumeric(left) && synonymsContain(right)) {
+            int p = Integer.parseInt(left);
+            Set<Integer> descendants = pkb.getFollowsStar(p);
+            for (int d : descendants)
+                partialSolutions.get(right).add(String.valueOf(d));
+        }
+        if(synonymsContain(left) && synonymsContain(right)){
+            Set<String> leftResults = new HashSet<>();
+            Set<String> rightResults = new HashSet<>();
+            Set<Integer> parents = pkb.getAllStmts();
+            for (int s : pkb.getAllStmts()) {
+                Set<Integer> followers = pkb.getFollowsStar(s);
+                for (int w : followers) {
+                    leftResults.add(String.valueOf(s));
+                    rightResults.add(String.valueOf(w));
+                }
+            }
+
+            partialSolutions.put(left, leftResults);
+            partialSolutions.put(right, rightResults);
+        }
+    }
+
+    private void handleCalls(String left, String right, Map<String, Set<String>> partialSolutions) {
+        String caller = left.replace("\"", "");
+        String callee = right.replace("\"", "");
+
+        if (synonymsContain(left) && synonymsContain(right)) {
+            for (Map.Entry<String, Set<String>> entry : pkb.getCallsMap().entrySet()) {
+                String procCaller = entry.getKey();
+                for (String procCallee : entry.getValue()) {
+                    partialSolutions.get(left).add(procCaller);
+                    partialSolutions.get(right).add(procCallee);
+                }
+            }
+        } else if (isStringLiteral(left) && synonymsContain(right)) {
+            Set<String> callees = pkb.getCalls(caller);
+            partialSolutions.get(right).addAll(callees);
+        } else if (isStringLiteral(right) && synonymsContain(left)) {
+            for (Map.Entry<String, Set<String>> entry : pkb.getCallsMap().entrySet()) {
+                if (entry.getValue().contains(callee)) {
+                    partialSolutions.get(left).add(entry.getKey());
+                }
+            }
+        }
+    }
+
+    private void handleParent(String left, String right, Map<String, Set<String>> partialSolutions) {
+        if (isNumeric(right) && synonymsContain(left)) {
+            int c = Integer.parseInt(right);
+            Integer i = pkb.getParent(c);
+            if (i == -1) {
+                partialSolutions.get(left).add("none");
+                return;
+            }
+            int p = i;
+            if (p > 0)
+                partialSolutions.get(left).add(String.valueOf(p));
+        }
+        if (isNumeric(left) && synonymsContain(right)) {
+            int p = Integer.parseInt(left);
+            Set<Integer> kids = pkb.getParentedBy(p);
+            if (kids.isEmpty()) {
+                partialSolutions.get(right).add("none");
+            } else {
+                for (int k : kids)
+                    partialSolutions.get(right).add(String.valueOf(k));
             }
         }
     }
@@ -266,103 +346,6 @@ public class QueryEvaluator {
         }
     }
 
-    private void handleFollowsStar(String left, String right, Map<String, Set<String>> partialSolutions) {
-        if (isNumeric(right) && synonymsContain(left)) {
-            int c = Integer.parseInt(right);
-            Set<Integer> parents = pkb.getFollowedByStar(c);
-            for (int p : parents)
-                partialSolutions.get(left).add(String.valueOf(p));
-        }
-        if (isNumeric(left) && synonymsContain(right)) {
-            int p = Integer.parseInt(left);
-            Set<Integer> descendants = pkb.getFollowsStar(p);
-            for (int d : descendants)
-                partialSolutions.get(right).add(String.valueOf(d));
-        }
-        if(synonymsContain(left) && synonymsContain(right)){
-            Set<String> leftResults = new HashSet<>();
-            Set<String> rightResults = new HashSet<>();
-            Set<Integer> parents = pkb.getAllStmts();
-            for (int s : pkb.getAllStmts()) {
-                Set<Integer> followers = pkb.getFollowsStar(s);
-                for (int w : followers) {
-                    leftResults.add(String.valueOf(s));
-                    rightResults.add(String.valueOf(w));
-                }
-            }
-
-            partialSolutions.put(left, leftResults);
-            partialSolutions.put(right, rightResults);
-        }
-    }
-
-    private void handleCalls(String left, String right, Map<String, Set<String>> partialSolutions) {
-        String caller = left.replace("\"", "");
-        String callee = right.replace("\"", "");
-
-        if (synonymsContain(left) && synonymsContain(right)) {
-            for (Map.Entry<String, Set<String>> entry : pkb.getCallsMap().entrySet()) {
-                String procCaller = entry.getKey();
-                for (String procCallee : entry.getValue()) {
-                    partialSolutions.get(left).add(procCaller);
-                    partialSolutions.get(right).add(procCallee);
-                }
-            }
-        } else if (isStringLiteral(left) && synonymsContain(right)) {
-            Set<String> callees = pkb.getCalls(caller);
-            partialSolutions.get(right).addAll(callees);
-        } else if (isStringLiteral(right) && synonymsContain(left)) {
-            for (Map.Entry<String, Set<String>> entry : pkb.getCallsMap().entrySet()) {
-                if (entry.getValue().contains(callee)) {
-                    partialSolutions.get(left).add(entry.getKey());
-                }
-            }
-        }
-    }
-
-    private void handleCallsStar(String left, String right, Map<String, Set<String>> partialSolutions) {
-        String caller = left.replace("\"", "");
-        String callee = right.replace("\"", "");
-
-        if (synonymsContain(left) && synonymsContain(right)) {
-            for (String proc : pkb.getCallsMap().keySet()) {
-                Set<String> allCallees = pkb.getCallsStar(proc);
-                for (String c : allCallees) {
-                    partialSolutions.get(left).add(proc);
-                    partialSolutions.get(right).add(c);
-                }
-            }
-        } else if (isStringLiteral(left) && synonymsContain(right)) {
-            Set<String> callees = pkb.getCallsStar(caller);
-            partialSolutions.get(right).addAll(callees);
-        } else if (isStringLiteral(right) && synonymsContain(left)) {
-            for (String proc : pkb.getCallsMap().keySet()) {
-                if (pkb.getCallsStar(proc).contains(callee)) {
-                    partialSolutions.get(left).add(proc);
-                }
-            }
-        }
-    }
-
-    private boolean isStringLiteral(String s) {
-        return s.startsWith("\"") && s.endsWith("\"");
-    }
-
-    //  private void handleFollowsStar(String left, String right, Map<String, Set<String>> partialSolutions) {
-//    if (isNumeric(right) && synonymsContain(left)) {
-//      int r = Integer.parseInt(right);
-//      Set<Integer> preds = pkb.getFollowedByStar(r);
-//      for (int x : preds)
-//        partialSolutions.get(left).add(String.valueOf(x));
-//    }
-//    if (isNumeric(left) && synonymsContain(right)) {
-//      int f = Integer.parseInt(left);
-//      Set<Integer> succs = pkb.getFollowsStar(f);
-//      for (int x : succs)
-//        partialSolutions.get(right).add(String.valueOf(x));
-//    }
-//  }
-//
     private void handleUses(String left, String right,
                             Map<String, Set<String>> partial) {
 
@@ -422,6 +405,10 @@ public class QueryEvaluator {
                 }
             }
         }
+    }
+
+    private boolean isStringLiteral(String s) {
+        return s.startsWith("\"") && s.endsWith("\"");
     }
 
     private Set<String> finalizeResult(String query, Map<String, Set<String>> partialSolutions) {

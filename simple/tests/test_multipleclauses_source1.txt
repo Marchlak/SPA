@@ -21,7 +21,7 @@ Select a such that Modifies (a, "b") and Uses (a, "b")
 none
 assign a;
 Select a such that Modifies (a, "c") and Uses (a, "c")
-none
+16, 21
 while w; assign a;
 Select a such that Modifies (a, "t") and Parent (w, a)
 19
@@ -36,4 +36,7 @@ Select p such that Calls ("Circle", p) and Modifies (p, "c") and Uses (p, "a")
 Rectangle, Triangle
 procedure p;
 Select p such that Calls* ("Circle", p) and Modifies (p, "c")
+Rectangle, Triangle
+stmt s; procedure p;
+Select s such that Follows (s, 5) and Calls (p, "Rectangle") and Parent* (s, 2) and Parent (s, 11) and Calls* ("Circle", p) and Uses (s, "x") and Parent* (s, 2)
 Rectangle, Triangle
