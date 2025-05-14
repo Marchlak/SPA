@@ -2,8 +2,8 @@
 G	java:S106"+Replace this use of System.out by a logger.(Î»‚8ĞŞêÛì2
 o
 java:S3776&"RRefactor this method to reduce its Cognitive Complexity from 20 to the 15 allowed.(Ÿ“˜€8ÙŞêÛì2
-M
-java:S60352"0Replace this alternation with a character class.(¥²ö«8„ØğÛì2
+R
+java:S60352"0Replace this alternation with a character class.(˜ê¥ûÿÿÿÿ8„ØğÛì2
 ^
 java:S1117P"<Rename "synonyms" which hides the field declared at line 13.(¶ùÉÄùÿÿÿÿ8†ØğÛì2
 Q

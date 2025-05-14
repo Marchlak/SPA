@@ -47,7 +47,7 @@ public class QueryEvaluator {
         }
         for (int i = 1; i < parted.length; i++) {
             String[] withoutWith = parted[i].split("WITH");
-            afterSelect.addAll(List.of(withoutWith[0].split(" |,|\\(|\"|\\)")));
+            afterSelect.addAll(List.of(withoutWith[0].split(" |,|\\(|\\)")));
         }
         int relationshipArgsCounter = 0;
         for (String s : afterSelect) {

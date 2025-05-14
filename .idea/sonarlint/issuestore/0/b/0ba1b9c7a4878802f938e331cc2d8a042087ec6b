@@ -17,4 +17,4 @@ G	java:S106s"+Replace this use of System.out by a logger.(šÏ€¦8˜’ÅÓì2
 G	java:S106t"+Replace this use of System.out by a logger.(µú°œ8˜’ÅÓì2
 L	java:S106x"+Replace this use of System.out by a logger.(Ä¸œÇûÿÿÿÿ8˜’ÅÓì2
 L	java:S106{"+Replace this use of System.out by a logger.(Í—©ÿÿÿÿÿ8˜’ÅÓì2
-^	java:S125…"<This block of commented-out lines of code should be removed.(áûğïıÿÿÿÿ8İ™ÎÓì2
+^	java:S125„"<This block of commented-out lines of code should be removed.(×¤ŒŒúÿÿÿÿ8Ï¥îûì2
