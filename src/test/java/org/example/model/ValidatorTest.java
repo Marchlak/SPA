@@ -245,6 +245,7 @@ class ValidatorTest {
         assertFalse(validator.isValid(query));
     }
 
+
    /* @Test
     void testInvalidSynonymWithComma() {
         Validator validator = new Validator();
@@ -259,12 +260,14 @@ class ValidatorTest {
         assertFalse(validator.isValid(query));
     }
 
+
     /*@Test
     void testNumberAsSecondParameter() {
         Validator validator = new Validator();
         String query = "assign s1; select s1 such that modifies(s1, 10) and uses(s1, 20)";
         assertFalse(validator.isValid(query));
     } */
+
 
     @Test
     void testWithClauseWithoutCondition() {

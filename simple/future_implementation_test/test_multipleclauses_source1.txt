@@ -1,0 +1,39 @@
+stmt s;
+Select s such that Parent* (s, 11) and Parent* (s, 12) and Parent (s, 11)
+10
+stmt s;
+Select s such that Follows (s, 3) and Parent (s, 4)
+none
+stmt s;
+Select s such that Follows (s, 2) with s.stmt# = 1
+1
+stmt s; var v;
+Select s such that Follows (s, 7) and Follows* (s, 8) with s.stmt# = 6 and v.varName = "a"
+6
+assign a;
+Select a such that Modifies (a, "a") and Uses (a, "a")
+26
+assign a;
+Select a such that Modifies (a, "d") and Uses (a, "d")
+11
+assign a;
+Select a such that Modifies (a, "b") and Uses (a, "b")
+none
+assign a;
+Select a such that Modifies (a, "c") and Uses (a, "c")
+16, 21
+while w; assign a;
+Select a such that Modifies (a, "t") and Parent (w, a)
+19
+while w; assign a;
+Select a such that Parent (w, a) and Modifies (a, "t")
+19
+while w; assign a;
+Select a such that Modifies (a, "t") such that Parent (w, a)
+19
+procedure p;
+Select p such that Calls ("Circle", p) and Modifies (p, "c") and Uses (p, "a")
+Rectangle, Triangle
+procedure p;
+Select p such that Calls* ("Circle", p) and Modifies (p, "c")
+Rectangle, Triangle
