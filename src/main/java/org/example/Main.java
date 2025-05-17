@@ -65,7 +65,7 @@ public class Main {
 //                "./simple/source6.txt",
 //                "./simple/source7.txt",
         };
-        String[] queryFilesPaths = {"./simple/test5.txt"};
+        String[] queryFilesPaths = {"./simple/test_pattern_clause.txt"};
 
        for (String programFile : programFilePaths) {
            for (String queryFile : queryFilesPaths) {
