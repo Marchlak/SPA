@@ -88,6 +88,7 @@ public class DesignExtractor {
         TNode varNode = assignNode.getFirstChild();
         String varName = varNode.getAttr();
         pkb.addVariable(varName);
+        pkb.setAssignLhs(stmtNumber, varName);
         pkb.setModifiesStmt(stmtNumber, varName);
         if (currentProcedure != null) {
             pkb.setModifiesProc(currentProcedure, varName);
