@@ -7,6 +7,7 @@ class SynonymMapper {
             case "STMT" -> SynonymType.STMT;
             case "ASSIGN" -> SynonymType.ASSIGN;
             case "WHILE" -> SynonymType.WHILE;
+            case "IF" -> SynonymType.IF;
             case "VARIABLE" -> SynonymType.VARIABLE;
             case "CONSTANT" -> SynonymType.CONSTANT;
             case "PROG_LINE" -> SynonymType.PROG_LINE;
