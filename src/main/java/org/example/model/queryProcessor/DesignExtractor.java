@@ -98,6 +98,7 @@ public class DesignExtractor {
 
         // Handle Uses (right side)
         TNode exprNode = varNode.getRightSibling();
+        pkb.setAssignRhsTree(stmtNumber, exprNode);
         Set<String> usedVars = extractVariablesFromNode(exprNode);
         for (String usedVar : usedVars) {
             pkb.addVariable(usedVar);
@@ -112,28 +113,39 @@ public class DesignExtractor {
         }
     }
 
-    private void processWhile(TNode whileNode, int condStmtNr) {
+    private void processWhile(TNode whileNode, int whileNr) {
         TNode cond = whileNode.getFirstChild();
-        for (String v : extractVariablesFromNode(cond)) {
+
+        Set<String> condVars = extractVariablesFromNode(cond);
+
+        pkb.setWhileControlVars(whileNr, condVars);
+
+        for (String v : condVars) {
             pkb.addVariable(v);
-            pkb.setUsesStmt(condStmtNr, v);
-            if (currentProcedure != null) pkb.setUsesProc(currentProcedure, v);
-            if (!parentStack.isEmpty()) pkb.propagateUsesToParent(condStmtNr, v);
+            pkb.setUsesStmt(whileNr, v);
+
+            if (currentProcedure != null) {
+                pkb.setUsesProc(currentProcedure, v);
+            }
+
+            if (!parentStack.isEmpty()) {
+                pkb.propagateUsesToParent(whileNr, v);
+            }
         }
 
-        parentStack.push(condStmtNr);
-        TNode stmtList = cond.getRightSibling();
+        parentStack.push(whileNr);
 
+        TNode body = cond.getRightSibling();
         int firstInBody = currentStmtNumber;
-        processStmtList(stmtList);
-        int lastInBody  = currentStmtNumber - 1;
 
+        processStmtList(body);
+
+        int lastInBody = currentStmtNumber - 1;
         parentStack.pop();
 
-        addNextEdge(condStmtNr, firstInBody);
-        addNextEdge(lastInBody, condStmtNr);
+        addNextEdge(whileNr, firstInBody);
+        addNextEdge(lastInBody, whileNr);
     }
-
 
     private void processCall(TNode callNode, int stmtNumber) {
         TNode procNameNode = callNode.getFirstChild();

@@ -1,7 +1,11 @@
 package org.example.model.queryProcessor;
 
+import org.example.model.ast.ExpressionParser;
+import org.example.model.ast.TNode;
 import org.example.model.enums.EntityType;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class QueryEvaluator {
@@ -60,6 +64,7 @@ public class QueryEvaluator {
                 case NEXT_STAR -> handleNextStar(left, right, partialSolutions);
             }
         }
+        handlePatterns(query, partialSolutions);
         return finalizeResult(query, partialSolutions);
     }
 
@@ -101,6 +106,26 @@ public class QueryEvaluator {
 
         return result;
     }
+
+    private List<PatternClause> extractPatternClauses(String query) {
+        List<PatternClause> res = new ArrayList<>();
+        String upper = query.toUpperCase();
+        int idx = upper.indexOf("PATTERN");
+        while (idx != -1) {
+            int start = idx + "PATTERN".length();
+            int open  = upper.indexOf('(', start);
+            int close = upper.indexOf(')', open);
+            String syn = query.substring(start, open).trim();
+            String inside = query.substring(open + 1, close).trim();
+            String[] parts = inside.split("\\s*,\\s*");
+            String arg1 = parts.length > 0 ? parts[0] : "_";
+            String arg2 = parts.length > 1 ? parts[1] : "_";
+            res.add(new PatternClause(syn, arg1, arg2));
+            idx = upper.indexOf("PATTERN", close);
+        }
+        return res;
+    }
+
 
     private List<Relationship> extractRelationship(String query, RelationshipType type) {
         List<Relationship> relationships = new ArrayList<>();
@@ -533,6 +558,7 @@ public class QueryEvaluator {
 
             switch (attr) {
                 case "STMT#" -> handleStmtWith(partialSolutions, w, synonym);
+                case "VALUE" -> handleValueWith(partialSolutions, w, synonym);
             }
 
             updateParentRelations(partialSolutions, synonym);
@@ -540,6 +566,21 @@ public class QueryEvaluator {
 
         return partialSolutions;
     }
+
+    private void handleValueWith(Map<String, Set<String>> partial, WithClause w, String constantSyn) {
+        String expected = w.right().replace(";", "").trim();
+
+        if (!partial.containsKey(constantSyn) || partial.get(constantSyn).isEmpty()) {
+            partial.put(constantSyn, Set.of(expected));
+            return;
+        }
+
+        Set<String> filtered = partial.get(constantSyn).stream()
+                .filter(v -> v.equals(expected))
+                .collect(Collectors.toSet());
+        partial.put(constantSyn, filtered);
+    }
+
 
     private void updateParentRelations(Map<String, Set<String>> partialSolutions, String synonym) {
         for (String otherSyn : partialSolutions.keySet()) {
@@ -633,94 +674,194 @@ public class QueryEvaluator {
         return getSynType(name) == SynonymType.PROCEDURE;
     }
 
-    private void handleNext(String left, String right,
-                            Map<String, Set<String>> partial) {
-
+    private void handleNext(String left, String right, Map<String, Set<String>> partial) {
         if (isNumeric(left) && isNumeric(right)) {
-            int l = Integer.parseInt(left);
-            int r = Integer.parseInt(right);
-
+            int l = Integer.parseInt(left), r = Integer.parseInt(right);
             if (pkb.getNext(l).contains(r)) {
-                partial.put(BOOL_SENTINEL, Set.of("✓"));
-            } else {
-                partial.clear();
+                partial.computeIfAbsent("BOOLEAN", k -> new HashSet<>()).add("T");
             }
             return;
         }
 
         if (isNumeric(left) && synonymsContain(right)) {
             int l = Integer.parseInt(left);
-            partial.putIfAbsent(right, new HashSet<>());
-            pkb.getNext(l).forEach(n -> partial.get(right).add(String.valueOf(n)));
+            partial.computeIfAbsent(right, k -> new HashSet<>())
+                    .addAll(pkb.getNext(l).stream().map(String::valueOf).toList());
             return;
         }
 
         if (synonymsContain(left) && isNumeric(right)) {
             int r = Integer.parseInt(right);
-            partial.putIfAbsent(left, new HashSet<>());
-            for (int s : pkb.getAllStmts()) {
-                if (pkb.getNext(s).contains(r)) {
-                    partial.get(left).add(String.valueOf(s));
-                }
+            Set<String> set = partial.computeIfAbsent(left, k -> new HashSet<>());
+            for (int stmt : pkb.getAllStmts()) {
+                if (pkb.getNext(stmt).contains(r)) set.add(String.valueOf(stmt));
             }
             return;
         }
 
         if (synonymsContain(left) && synonymsContain(right)) {
-            partial.putIfAbsent(left,  new HashSet<>());
-            partial.putIfAbsent(right, new HashSet<>());
+            Set<String> lSet = partial.computeIfAbsent(left,  k -> new HashSet<>());
+            Set<String> rSet = partial.computeIfAbsent(right, k -> new HashSet<>());
             for (int from : pkb.getAllStmts()) {
                 for (int to : pkb.getNext(from)) {
-                    partial.get(left).add(String.valueOf(from));
-                    partial.get(right).add(String.valueOf(to));
+                    lSet.add(String.valueOf(from));
+                    rSet.add(String.valueOf(to));
                 }
             }
         }
     }
 
-    private void handleNextStar(String left, String right,
-                                Map<String, Set<String>> partial) {
-
+    private void handleNextStar(String left, String right, Map<String, Set<String>> partial) {
         if (isNumeric(left) && isNumeric(right)) {
-            int l = Integer.parseInt(left);
-            int r = Integer.parseInt(right);
-
+            int l = Integer.parseInt(left), r = Integer.parseInt(right);
             if (pkb.getNextStar(l).contains(r)) {
-                partial.put(BOOL_SENTINEL, Set.of("✓"));
-            } else {
-                partial.clear();
+                partial.computeIfAbsent("BOOLEAN", k -> new HashSet<>()).add("T");
             }
             return;
         }
 
         if (isNumeric(left) && synonymsContain(right)) {
             int l = Integer.parseInt(left);
-            partial.putIfAbsent(right, new HashSet<>());
-            pkb.getNextStar(l).forEach(n -> partial.get(right).add(String.valueOf(n)));
+            partial.computeIfAbsent(right, k -> new HashSet<>())
+                    .addAll(pkb.getNextStar(l).stream().map(String::valueOf).toList());
             return;
         }
 
         if (synonymsContain(left) && isNumeric(right)) {
             int r = Integer.parseInt(right);
-            partial.putIfAbsent(left, new HashSet<>());
-            for (int s : pkb.getAllStmts()) {
-                if (pkb.getNextStar(s).contains(r)) {
-                    partial.get(left).add(String.valueOf(s));
-                }
+            Set<String> set = partial.computeIfAbsent(left, k -> new HashSet<>());
+            for (int stmt : pkb.getAllStmts()) {
+                if (pkb.getNextStar(stmt).contains(r)) set.add(String.valueOf(stmt));
             }
             return;
         }
 
         if (synonymsContain(left) && synonymsContain(right)) {
-            partial.putIfAbsent(left,  new HashSet<>());
-            partial.putIfAbsent(right, new HashSet<>());
+            Set<String> lSet = partial.computeIfAbsent(left,  k -> new HashSet<>());
+            Set<String> rSet = partial.computeIfAbsent(right, k -> new HashSet<>());
             for (int from : pkb.getAllStmts()) {
                 for (int to : pkb.getNextStar(from)) {
-                    partial.get(left).add(String.valueOf(from));
-                    partial.get(right).add(String.valueOf(to));
+                    lSet.add(String.valueOf(from));
+                    rSet.add(String.valueOf(to));
                 }
             }
         }
     }
 
+    private void handlePatterns(String query, Map<String, Set<String>> partial) {
+        Pattern p = Pattern.compile(
+                "pattern\\s+([A-Za-z][A-Za-z0-9]*)\\s*\\(([^()]*?(?:\\([^()]*\\)[^()]*)*?)\\)",
+                Pattern.CASE_INSENSITIVE
+        );
+
+        Matcher m = p.matcher(query);
+        while (m.find()) {
+            String synonymName = m.group(1).trim();
+            String argsRaw = m.group(2).trim();
+
+            SynonymType synType = synonyms.stream()
+                    .filter(s -> s.name().equalsIgnoreCase(synonymName))
+                    .map(Synonym::type)
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalArgumentException("Unknown synonym in PATTERN clause: " + synonymName));
+
+            List<String> args = splitPatternArgs(argsRaw);
+
+            if (args.size() == 2) {
+                handlePattern2Args(synType, synonymName, args.get(0), args.get(1), partial);
+            } else if (args.size() == 3) {
+                handlePattern3Args(synType, synonymName, args.get(0), args.get(1), args.get(2), partial);
+            } else {
+                throw new IllegalArgumentException("Invalid number of arguments in pattern clause for synonym: " + synonymName);
+            }
+        }
+    }
+
+    private List<String> splitPatternArgs(String argsRaw) {
+        List<String> args = new ArrayList<>();
+        int depth = 0;
+        StringBuilder current = new StringBuilder();
+
+        for (int i = 0; i < argsRaw.length(); i++) {
+            char c = argsRaw.charAt(i);
+
+            if (c == ',' && depth == 0) {
+                args.add(current.toString().trim());
+                current.setLength(0);
+            } else {
+                if (c == '(') depth++;
+                else if (c == ')') depth--;
+                current.append(c);
+            }
+        }
+
+        if (!current.isEmpty()) {
+            args.add(current.toString().trim());
+        }
+
+        return args;
+    }
+
+    private void handlePattern2Args(SynonymType synType, String synName, String arg1, String arg2, Map<String, Set<String>> partial) {
+        if (synType != SynonymType.ASSIGN && synType != SynonymType.WHILE) return;
+
+        Set<String> result = new HashSet<>();
+
+        if (synType == SynonymType.ASSIGN) {
+            Set<Integer> candidates;
+
+            if (!arg1.equals("_")) {
+                String lhsVar = arg1.replaceAll("\"", "");
+                candidates = pkb.getAssignsWithLhs(lhsVar);
+            } else {
+                candidates = pkb.getAllStmts().stream()
+                        .filter(stmt -> pkb.getStmtType(stmt) == EntityType.ASSIGN)
+                        .collect(Collectors.toSet());
+            }
+
+            for (Integer stmt : candidates) {
+                TNode rhsTree = pkb.getAssignRhsTree(stmt);
+
+                if (arg2.equals("_")) { // "_"
+                    result.add(String.valueOf(stmt));
+                } else if (arg2.startsWith("_\"") && arg2.endsWith("\"_")) { // _"..."_
+                    String subExpr = arg2.substring(2, arg2.length() - 2);
+                    TNode patternTree = ExpressionParser.parse(subExpr);
+                    if (pkb.containsTopLevelSubtree(rhsTree, patternTree)) {
+                        result.add(String.valueOf(stmt));
+                    }
+                } else { // "..."
+                    String exactExpr = arg2.replaceAll("\"", "");
+                    TNode patternTree = ExpressionParser.parse(exactExpr);
+                    if (pkb.treesEqual(rhsTree, patternTree)) {
+                        result.add(String.valueOf(stmt));
+                    }
+                }
+            }
+
+            partial.put(synName, result);
+        }
+
+        if (synType == SynonymType.WHILE) {
+            Set<Integer> allWhileStmts = pkb.getAllStmts().stream()
+                    .filter(stmt -> pkb.getStmtType(stmt) == EntityType.WHILE)
+                    .collect(Collectors.toSet());
+
+            if (!arg1.equals("_")) {
+                String controlVar = arg1.replaceAll("\"", "");
+                Set<Integer> filtered = allWhileStmts.stream()
+                        .filter(stmt -> pkb.getWhileControlVars(stmt).contains(controlVar))
+                        .collect(Collectors.toSet());
+                partial.put(synName, toStringSet(filtered));
+            } else {
+                partial.put(synName, toStringSet(allWhileStmts));
+            }
+        }
+    }
+
+    private Set<String> toStringSet(Set<Integer> ints) {
+        return ints.stream().map(String::valueOf).collect(Collectors.toSet());
+    }
+
+    private void handlePattern3Args(SynonymType synType, String synName, String arg1, String arg2, String arg3, Map<String, Set<String>> partial) {}
 }

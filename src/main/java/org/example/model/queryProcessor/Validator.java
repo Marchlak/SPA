@@ -57,9 +57,16 @@ class Validator {
                 getSynonymsPattern() +
                 "|BOOLEAN))*" +
                 getSuchThatPattern() +
+                getPatternPattern() +
                 getWithPattern() +
                 "$";
     }
+
+    private String getPatternPattern() {
+        String single = "PATTERN\\s+(" + getSynonymsPattern() + ")\\s*\\([^)]*\\)";
+        return "(\\s+" + single + "(\\s+AND\\s+" + single + ")*)?";
+    }
+
 
     private String getSynonymsPattern() {
         StringBuilder sb = new StringBuilder();

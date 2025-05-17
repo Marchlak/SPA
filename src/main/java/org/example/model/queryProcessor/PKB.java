@@ -1,5 +1,6 @@
 package org.example.model.queryProcessor;
 
+import org.example.model.ast.TNode;
 import org.example.model.enums.EntityType;
 
 import java.util.*;
@@ -36,6 +37,31 @@ public class PKB {
     private final Map<Integer, Set<Integer>> nextMap = new HashMap<>();
     private final Map<Integer, Set<Integer>> nextStarMap = new HashMap<>();
 
+    private final Map<String, Set<Integer>> assignLhsToStmts = new HashMap<>();
+    public void setAssignLhs(int stmt, String var) {
+        assignLhsToStmts.computeIfAbsent(var, k -> new HashSet<>()).add(stmt);
+    }
+    public Set<Integer> getAssignsWithLhs(String var) {
+        return assignLhsToStmts.getOrDefault(var, Set.of());
+    }
+
+    private final Map<Integer, TNode> assignRhsTree = new HashMap<>();
+    public void setAssignRhsTree(int stmt, TNode exprRoot) {
+        assignRhsTree.put(stmt, exprRoot);
+    }
+    public TNode getAssignRhsTree(int stmt) {
+        return assignRhsTree.get(stmt);
+    }
+
+    private final Map<Integer, Set<String>> whileControlVars = new HashMap<>();
+
+    public void setWhileControlVars(int stmt, Set<String> vars) {
+        whileControlVars.put(stmt, vars);
+    }
+
+    public Set<String> getWhileControlVars(int stmt) {
+        return whileControlVars.getOrDefault(stmt, Set.of());
+    }
     public Set<Integer> getStmtsUsingVar(String varName) {
         return varToStmtsUsingIt.getOrDefault(varName, new HashSet<>());
     }
@@ -357,4 +383,37 @@ public void printState() {
         return nextStarMap.getOrDefault(stmt, Set.of());
     }
 
+    public boolean treesEqual(TNode a, TNode b) {
+        if (a == null && b == null) return true;
+        if (a == null || b == null) return false;
+        if (!a.getType().equals(b.getType())) return false;
+        if (!Objects.equals(a.getAttr(), b.getAttr())) return false;
+
+        TNode ca = a.getFirstChild();
+        TNode cb = b.getFirstChild();
+        while (ca != null && cb != null) {
+            if (!treesEqual(ca, cb)) return false;
+            ca = ca.getRightSibling();
+            cb = cb.getRightSibling();
+        }
+        return ca == null && cb == null;
+    }
+
+    public boolean containsTopLevelSubtree(TNode root, TNode pattern) {
+        if (root == null || pattern == null) return false;
+
+        Deque<TNode> stack = new ArrayDeque<>();
+        stack.push(root);
+
+        while (!stack.isEmpty()) {
+            TNode current = stack.pop();
+
+            if (treesEqual(current, pattern)) return true;
+
+            for (TNode child = current.getFirstChild(); child != null; child = child.getRightSibling()) {
+                stack.push(child);
+            }
+        }
+        return false;
+    }
 }
