@@ -1,0 +1,39 @@
+prog_line n2;
+Select BOOLEAN such that Next (1, 2)
+true
+prog_line n2;
+Select BOOLEAN such that Next (6, 8)
+false
+prog_line n2;
+Select BOOLEAN such that Next (8, 9)
+true
+prog_line n2;
+Select BOOLEAN such that Next (10, 11)
+true
+prog_line n2;
+Select BOOLEAN such that Next (12, 10)
+true
+prog_line n2;
+Select BOOLEAN such that Next (12, 11)
+false
+prog_line n2;
+Select BOOLEAN such that Next (13, 14)
+false
+prog_line n2;
+Select BOOLEAN such that Next (17, 18)
+false
+prog_line n2;
+Select BOOLEAN such that Next (23, 27)
+true
+prog_line n2;
+Select BOOLEAN such that Next* (9, 9)
+false
+prog_line n2;
+Select BOOLEAN such that Next* (10, 10)
+true
+prog_line n2;
+Select BOOLEAN such that Next* (12, 12)
+true
+prog_line n2;
+Select BOOLEAN such that Next* (20, 20)
+true

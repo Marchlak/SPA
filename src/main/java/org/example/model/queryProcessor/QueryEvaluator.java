@@ -73,12 +73,15 @@ public class QueryEvaluator {
                 }
                 relationshipArgsCounter--;
             }
-            if (s.equals("PARENT") || s.equals("PARENT*") || s.equals("FOLLOWS")
-                    || s.equals("FOLLOWS*") || s.equals("CALLS") || s.equals("CALLS*") ||
-                    s.equals("MODIFIES") || s.equals("USES")) {
-                relationshipArgsCounter = 2;
-                sb.append(" ").append(s).append(" (");
-            }
+
+            if (s.equals("PARENT") || s.equals("PARENT*") ||
+                    s.equals("FOLLOWS") || s.equals("FOLLOWS*") ||
+                    s.equals("CALLS")   || s.equals("CALLS*")   ||
+                    s.equals("MODIFIES")|| s.equals("USES")     ||
+                    s.equals("NEXT")    || s.equals("NEXT*")) {
+                    relationshipArgsCounter = 2;
+                    sb.append(" ").append(s).append(" (");
+                }
         }
         return sb.toString();
     }
@@ -121,6 +124,7 @@ public class QueryEvaluator {
             }
             first = false;
         }
+        handlePatterns(query, partialSolutions);
         return finalizeResult(query, partialSolutions);
     }
 
@@ -128,6 +132,8 @@ public class QueryEvaluator {
         String left = r.getFirstArg();
         String right = r.getSecondArg();
         switch (r.getType()) {
+            case NEXT -> handleNext(left, right, partial);
+            case NEXT_STAR -> handleNextStar(left, right, partial);
             case CALLS_STAR -> handleCallsStar(left, right, partial);
             case PARENT_STAR -> handleParentStar(left, right, partial);
             case FOLLOWS_STAR -> handleFollowsStar(left, right, partial);
@@ -141,8 +147,9 @@ public class QueryEvaluator {
 
     private List<Relationship> extractRelationships(String query) {
         List<Relationship> result = new ArrayList<>();
-
-        Pattern pattern = Pattern.compile("\\b(FOLLOWS\\*?|PARENT\\*?|CALLS\\*?|MODIFIES|USES)\\s*\\(([^,\\)]+)\\s*,\\s*([^\\)]+)\\)");
+        Pattern pattern = Pattern.compile(
+                "\\b(FOLLOWS\\*?|PARENT\\*?|CALLS\\*?|MODIFIES|USES|NEXT\\*?)\\s*\\(([^,\\)]+)\\s*,\\s*([^\\)]+)\\)",
+                Pattern.CASE_INSENSITIVE);
         Matcher matcher = pattern.matcher(query);
 
         while (matcher.find()) {
@@ -183,6 +190,12 @@ public class QueryEvaluator {
             }
             case "USES" -> {
                 return RelationshipType.USES;
+            }
+            case "NEXT" -> {
+                return RelationshipType.NEXT;
+            }
+            case "NEXT*" -> {
+                return RelationshipType.NEXT_STAR;
             }
             default -> {
                 return null;

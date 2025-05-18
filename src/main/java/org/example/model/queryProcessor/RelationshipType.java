@@ -10,8 +10,7 @@ enum RelationshipType {
     MODIFIES("MODIFIES"),
     USES("USES"),
     NEXT("NEXT"),
-    NEXT_STAR("NEXT\\*"),
-    PATTERN("PATTERN");
+    NEXT_STAR("NEXT\\*");
 
     private final String type;
 

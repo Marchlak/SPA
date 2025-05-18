@@ -52,7 +52,9 @@ public class Validator {
         String relClause = "SUCH\\s+THAT\\s+(?:" + relAlt + ")(?:\\s+AND\\s+(?:" + relAlt + "))*";
         String attrAlt = attributesAlternation();
         String withClause = "WITH\\s+" + attrAlt + "(?:\\s+AND\\s+" + attrAlt + ")*";
-        queryPattern = select + "(?:\\s+(?:" + relClause + '|' + withClause + "))*$";
+        String patternClause = "PATTERN\\s+.+";
+        queryPattern = select +
+                "(?:\\s+(?:" + relClause + "|" + withClause + "|" + patternClause + "))*$";
     }
 
     private String relationsAlternation(String synAlt) {
@@ -61,6 +63,7 @@ public class Validator {
         return rel("MODIFIES", ent, ent) + '|' + rel("USES", ent, ent) + '|' +
                 rel("PARENT", stmt, stmt) + '|' + rel("PARENT\\*", stmt, stmt) + '|' +
                 rel("FOLLOWS", stmt, stmt) + '|' + rel("FOLLOWS\\*", stmt, stmt) + '|' +
+                rel("NEXT", stmt, stmt) + '|' + rel("NEXT\\*", stmt, stmt) + '|' +
                 rel("CALLS", ent, ent) + '|' + rel("CALLS\\*", ent, ent);
     }
 
