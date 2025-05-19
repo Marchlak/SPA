@@ -38,8 +38,8 @@ public class Validator {
         };
         SynonymType type = SynonymMapper.toSynonymType(token);
         for (int i = 1; i < split.length; i++) {
-            String n = split[i].replace(',', ' ').trim();
-            if (!n.matches("^[A-Z][A-Z0-9#]*$")) throw new IllegalArgumentException();
+            String n = split[i].trim();
+            if (!n.matches("^[A-Z][A-Z0-9]*$")) throw new IllegalArgumentException();
             synonyms.add(new Synonym(type, n));
         }
     }
@@ -59,8 +59,8 @@ public class Validator {
 
     private String relationsAlternation(String synAlt) {
         String stmt = synAlt + "|_|[0-9]+";
-        String ent = synAlt + "|_|(\"[A-Z][A-Z0-9#]*\")|[0-9]+";
-        return rel("MODIFIES", ent, ent) + '|' + rel("USES", ent, ent) + '|' +
+        String ent = synAlt + "|_|(\"[A-Z][A-Z0-9]*\")";
+        return rel("MODIFIES", stmt, ent) + '|' + rel("USES", stmt, ent) + '|' +
                 rel("PARENT", stmt, stmt) + '|' + rel("PARENT\\*", stmt, stmt) + '|' +
                 rel("FOLLOWS", stmt, stmt) + '|' + rel("FOLLOWS\\*", stmt, stmt) + '|' +
                 rel("NEXT", stmt, stmt) + '|' + rel("NEXT\\*", stmt, stmt) + '|' +
