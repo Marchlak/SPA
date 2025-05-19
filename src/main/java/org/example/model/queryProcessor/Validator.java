@@ -34,6 +34,7 @@ public class Validator {
         String token = switch (split[0]) {
             case "VAR" -> "VARIABLE";
             case "PROC" -> "PROCEDURE";
+            case "IF"   -> "IF";
             default -> split[0];
         };
         SynonymType type = SynonymMapper.toSynonymType(token);
@@ -76,7 +77,7 @@ public class Validator {
         StringBuilder sb = new StringBuilder();
         for (Synonym s : synonyms) {
             switch (s.type()) {
-                case STMT, ASSIGN, WHILE -> sb.append(s.name()).append("\\.STMT#\\s*=\\s*[0-9]+|");
+                case STMT, ASSIGN, WHILE, IF -> sb.append(s.name()).append("\\.STMT#\\s*=\\s*[0-9]+|");
                 case VARIABLE -> sb.append(s.name()).append("\\.VARNAME\\s*=\\s*\"[A-Z][A-Z0-9]*\"|");
                 case CONSTANT -> sb.append(s.name()).append("\\.VALUE\\s*=\\s*\\d+|");
                 case PROCEDURE -> sb.append(s.name()).append("\\.PROCNAME\\s*=\\s*\"[A-Z][A-Z0-9]*\"|");

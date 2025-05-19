@@ -38,6 +38,8 @@ public class PKB {
     private final Map<Integer, Set<Integer>> nextStarMap = new HashMap<>();
 
     private final Map<String, Set<Integer>> assignLhsToStmts = new HashMap<>();
+
+    private final Map<Integer, Set<String>> ifControlVars = new HashMap<>();
     public void setAssignLhs(int stmt, String var) {
         assignLhsToStmts.computeIfAbsent(var, k -> new HashSet<>()).add(stmt);
     }
@@ -113,6 +115,13 @@ public class PKB {
             computeDescendants(parent);
         }
         return new HashSet<>(descendantCache.get(parent));
+    }
+
+    public void setIfControlVars(int stmt, Set<String> vars){
+        ifControlVars.put(stmt, vars);
+    }
+    public Set<String> getIfControlVars(int stmt){
+        return ifControlVars.getOrDefault(stmt, Set.of());
     }
 
     private void computeDescendants(int parent) {

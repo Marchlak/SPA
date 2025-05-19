@@ -183,6 +183,10 @@ public class DesignExtractor {
     private void processIf(TNode ifNode, int ifStmtNr) {
 
         TNode cond = ifNode.getFirstChild();
+        Set<String> condVars = extractVariablesFromCond(cond);
+
+        pkb.setIfControlVars(ifStmtNr, condVars);
+
         for (String v : extractVariablesFromCond(cond)) {
             pkb.addVariable(v);
             pkb.setUsesStmt(ifStmtNr, v);

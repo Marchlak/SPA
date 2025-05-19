@@ -742,12 +742,20 @@ public class QueryEvaluator {
         return args;
     }
 
-    private void handlePattern2Args(SynonymType synType, String synName, String arg1, String arg2, Map<String, Set<String>> partial) {
-        if (synType != SynonymType.ASSIGN && synType != SynonymType.WHILE) return;
 
-        Set<String> result = new HashSet<>();
+    private void handlePattern2Args(SynonymType synType,
+                                    String synName,
+                                    String arg1,
+                                    String arg2,
+                                    Map<String, Set<String>> partial) {
+
+
+        partial.computeIfAbsent(synName, k -> new HashSet<>());
+
 
         if (synType == SynonymType.ASSIGN) {
+
+            Set<String> result = new HashSet<>();
             Set<Integer> candidates;
 
             if (!arg1.equals("_")) {
@@ -755,53 +763,148 @@ public class QueryEvaluator {
                 candidates = pkb.getAssignsWithLhs(lhsVar);
             } else {
                 candidates = pkb.getAllStmts().stream()
-                        .filter(stmt -> pkb.getStmtType(stmt) == EntityType.ASSIGN)
+                        .filter(s -> pkb.getStmtType(s) == EntityType.ASSIGN)
                         .collect(Collectors.toSet());
             }
 
             for (Integer stmt : candidates) {
                 TNode rhsTree = pkb.getAssignRhsTree(stmt);
 
-                if (arg2.equals("_")) { // "_"
+                if (arg2.equals("_")) {
                     result.add(String.valueOf(stmt));
-                } else if (arg2.startsWith("_\"") && arg2.endsWith("\"_")) { // _"..."_
+
+                } else if (arg2.startsWith("_\"") && arg2.endsWith("\"_")) {
                     String subExpr = arg2.substring(2, arg2.length() - 2);
                     TNode patternTree = ExpressionParser.parse(subExpr);
-                    if (pkb.containsTopLevelSubtree(rhsTree, patternTree)) {
+                    if (pkb.containsTopLevelSubtree(rhsTree, patternTree))
                         result.add(String.valueOf(stmt));
-                    }
-                } else { // "..."
-                    String exactExpr = arg2.replaceAll("\"", "");
-                    TNode patternTree = ExpressionParser.parse(exactExpr);
-                    if (pkb.treesEqual(rhsTree, patternTree)) {
+
+                } else {
+                    String exact = arg2.replaceAll("\"", "");
+                    TNode patternTree = ExpressionParser.parse(exact);
+                    if (pkb.treesEqual(rhsTree, patternTree))
                         result.add(String.valueOf(stmt));
-                    }
                 }
             }
 
             partial.put(synName, result);
+            if (!result.isEmpty())
+                partial.computeIfAbsent("BOOLEAN", k -> new HashSet<>()).add("T");
+            return;
         }
 
         if (synType == SynonymType.WHILE) {
-            Set<Integer> allWhileStmts = pkb.getAllStmts().stream()
-                    .filter(stmt -> pkb.getStmtType(stmt) == EntityType.WHILE)
+
+            Set<Integer> allWhiles = pkb.getAllStmts().stream()
+                    .filter(s -> pkb.getStmtType(s) == EntityType.WHILE)
                     .collect(Collectors.toSet());
 
+            Set<Integer> matched;
             if (!arg1.equals("_")) {
-                String controlVar = arg1.replaceAll("\"", "");
-                Set<Integer> filtered = allWhileStmts.stream()
-                        .filter(stmt -> pkb.getWhileControlVars(stmt).contains(controlVar))
+                String var = arg1.replaceAll("\"", "");
+                matched = allWhiles.stream()
+                        .filter(s -> pkb.getWhileControlVars(s).contains(var))
                         .collect(Collectors.toSet());
-                partial.put(synName, toStringSet(filtered));
             } else {
-                partial.put(synName, toStringSet(allWhileStmts));
+                matched = allWhiles;
             }
+
+            partial.put(synName, toStringSet(matched));
+            if (!matched.isEmpty())
+                partial.computeIfAbsent("BOOLEAN", k -> new HashSet<>()).add("T");
+            return;
+        }
+
+
+        if (synType == SynonymType.IF) {
+
+            if (arg1.equals("\"\"")) arg1 = "_";
+
+            boolean any = arg1.equals("_");
+            boolean lit = arg1.startsWith("\"") && arg1.endsWith("\"");
+            boolean syn = synonymsContain(arg1);
+            String  litVal = lit ? arg1.substring(1, arg1.length() - 1) : null;
+
+            if (syn) partial.computeIfAbsent(arg1, k -> new HashSet<>());
+
+            Set<String> matched = new HashSet<>();
+
+            for (int s : pkb.getAllStmts()) {
+                if (pkb.getStmtType(s) != EntityType.IF) continue;
+                Set<String> ctrl = pkb.getIfControlVars(s);
+
+                if (any) {
+                    matched.add(String.valueOf(s));
+
+                } else if (lit && ctrl.contains(litVal)) {
+                    matched.add(String.valueOf(s));
+
+                } else if (syn) {
+                    for (String v : ctrl) {
+                        matched.add(String.valueOf(s));
+                        partial.get(arg1).add(v);
+                    }
+                }
+            }
+
+            partial.get(synName).addAll(matched);
+            if (!matched.isEmpty())
+                partial.computeIfAbsent("BOOLEAN", k -> new HashSet<>()).add("T");
         }
     }
+
 
     private Set<String> toStringSet(Set<Integer> ints) {
         return ints.stream().map(String::valueOf).collect(Collectors.toSet());
     }
 
-    private void handlePattern3Args(SynonymType synType, String synName, String arg1, String arg2, String arg3, Map<String, Set<String>> partial) {}
+    private void handlePattern3Args(SynonymType synType,
+                                    String synName,
+                                    String arg1,
+                                    String arg2,
+                                    String arg3,
+                                    Map<String, Set<String>> partial) {
+
+        if (synType != SynonymType.IF) return;
+
+        partial.computeIfAbsent(synName, k -> new HashSet<>());
+
+        if (arg1.equals("\"\"")) arg1 = "_";
+
+        boolean any   = arg1.equals("_");
+        boolean lit   = arg1.startsWith("\"") && arg1.endsWith("\"");
+        boolean syn   = synonymsContain(arg1);
+
+        if (syn) {
+            partial.computeIfAbsent(arg1, k -> new HashSet<>());
+        }
+        String  litVal= lit ? arg1.substring(1, arg1.length()-1) : null;
+
+        Set<String> matches = new HashSet<>();
+
+        for (int ifStmt : pkb.getAllStmts()) {
+            if (pkb.getStmtType(ifStmt) != EntityType.IF) continue;
+            Set<String> ctrl = pkb.getIfControlVars(ifStmt);
+
+            if (any) {
+                matches.add(String.valueOf(ifStmt));
+
+            } else if (lit && ctrl.contains(litVal)) {
+                matches.add(String.valueOf(ifStmt));
+
+            } else if (syn) {
+                for (String v : ctrl) {
+                    matches.add(String.valueOf(ifStmt));
+                    partial.get(arg1).add(v);
+                }
+            }
+        }
+
+        partial.get(synName).addAll(matches);
+
+        if (!matches.isEmpty())
+            partial.computeIfAbsent("BOOLEAN", k -> new HashSet<>()).add("T");
+    }
+
+
 }
