@@ -34,7 +34,7 @@ public class Validator {
         String token = switch (split[0]) {
             case "VAR" -> "VARIABLE";
             case "PROC" -> "PROCEDURE";
-            case "IF"   -> "IF";
+            case "IF" -> "IF";
             default -> split[0];
         };
         SynonymType type = SynonymMapper.toSynonymType(token);
@@ -61,11 +61,18 @@ public class Validator {
     private String relationsAlternation(String synAlt) {
         String stmt = synAlt + "|_|[0-9]+";
         String ent = synAlt + "|_|(\"[A-Z][A-Z0-9]*\")";
-        return rel("MODIFIES", stmt, ent) + '|' + rel("USES", stmt, ent) + '|' +
-                rel("PARENT", stmt, stmt) + '|' + rel("PARENT\\*", stmt, stmt) + '|' +
-                rel("FOLLOWS", stmt, stmt) + '|' + rel("FOLLOWS\\*", stmt, stmt) + '|' +
-                rel("NEXT", stmt, stmt) + '|' + rel("NEXT\\*", stmt, stmt) + '|' +
-                rel("CALLS", ent, ent) + '|' + rel("CALLS\\*", ent, ent);
+        return rel("MODIFIES", stmt, ent) + '|' +
+                rel("MODIFIES", ent, ent) + '|' +
+                rel("USES", stmt, ent) + '|' +
+                rel("USES", ent, ent) + '|' +
+                rel("PARENT", stmt, stmt) + '|' +
+                rel("PARENT\\*", stmt, stmt) + '|' +
+                rel("FOLLOWS", stmt, stmt) + '|' +
+                rel("FOLLOWS\\*", stmt, stmt) + '|' +
+                rel("NEXT", stmt, stmt) + '|' +
+                rel("NEXT\\*", stmt, stmt) + '|' +
+                rel("CALLS", ent, ent) + '|' +
+                rel("CALLS\\*", ent, ent);
     }
 
     private String rel(String name, String left, String right) {
