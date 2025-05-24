@@ -3,6 +3,7 @@ package org.example.model;
 import org.example.model.ast.TNode;
 import org.example.model.enums.EntityType;
 import org.example.model.enums.TokenType;
+
 import java.util.List;
 
 public class Parser {
@@ -28,20 +29,24 @@ public class Parser {
     }
 
     public TNode parseProgram() {
-        checkToken(TokenType.PROGRAM);
-        Token nameToken = checkToken(TokenType.NAME);
+        TNode programNode;
 
-        TNode programNode = new TNode(EntityType.PROGRAM);
-        programNode.setAttr(nameToken.getValue());
-
-        checkToken(TokenType.LBRACE);
+        if (getToken().getType() == TokenType.PROGRAM) {
+            checkToken(TokenType.PROGRAM);
+            Token nameToken = checkToken(TokenType.NAME);
+            programNode = new TNode(EntityType.PROGRAM);
+            programNode.setAttr(nameToken.getValue());
+            checkToken(TokenType.LBRACE);
+        } else {
+            programNode = new TNode(EntityType.PROGRAM);
+            programNode.setAttr("DefaultProgram");
+        }
 
         TNode procListNode = new TNode(EntityType.PROCLIST);
         programNode.setFirstChild(procListNode);
 
         while (getToken().getType() == TokenType.PROCEDURE) {
             TNode procedureNode = parseProcedure();
-
             if (procListNode.getFirstChild() == null) {
                 procListNode.setFirstChild(procedureNode);
             } else {
@@ -53,8 +58,12 @@ public class Parser {
             }
         }
 
-        checkToken(TokenType.RBRACE);
-        checkToken(TokenType.EOF);
+        if (programNode.getAttr().equals("DefaultProgram")) {
+            checkToken(TokenType.EOF);
+        } else {
+            checkToken(TokenType.RBRACE);
+            checkToken(TokenType.EOF);
+        }
 
         return programNode;
     }
