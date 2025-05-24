@@ -53,7 +53,7 @@ public class Main {
 
     public static void testRun(String[] args) {
         String programFilePath = "./simple/simple_sources/source1.txt";
-        String[] queryFilesPaths = {"/Users/przemyslawrutkowski/college/atsi/SPA/simple/tests/test_next_source1.txt"};
+        String[] queryFilesPaths = {"./simple/tests/test_debug_source1.txt"};
 
            for (String queryFile : queryFilesPaths) {
                System.out.println("\n🧪 Running tests from: \n" +
@@ -128,8 +128,8 @@ public class Main {
     }
 
     public static void main(String[] args) {
-//       testRun(args);
-       defaultRun(args);
+       testRun(args);
+      // defaultRun(args);
     }
 
 }

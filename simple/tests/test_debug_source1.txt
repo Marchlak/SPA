@@ -1,0 +1,3 @@
+while w; assign a;
+Select a such that Modifies (a, "t") such that Parent (w, a)
+19

@@ -30,16 +30,33 @@ public class QueryEvaluator {
 
         synonyms = validator.getSynonyms();
         String[] split = query.split(";");
-        String queryToProcess = toUpperCaseOutsideQuotes(split[split.length - 1].trim());
-        queryToProcess = transformQueryToApplyWith(queryToProcess);
-        boolean isBooleanQuery = queryToProcess.trim().toUpperCase().startsWith("SELECT BOOLEAN");
-        Set<String> result = processQuery(queryToProcess);
+        String rawTail = split[split.length - 1].trim();
+        String processed = toUpperCaseOutsideQuotes(rawTail);
+        processed = transformQueryToApplyWith(processed);
+        boolean isBooleanQuery = processed.trim().toUpperCase().startsWith("SELECT BOOLEAN");
+        Set<String> result = processQuery(processed, rawTail);
         if (isBooleanQuery) {
             return Set.of(result.isEmpty() || result.contains("none") ? "false" : "true");
         }
-
         if (result.isEmpty()) result.add("none");
         return result;
+    }
+
+
+    private void applyWithConstraints(String raw, Map<String, Set<String>> m) {
+        for (WithClause w : parseWithClauses(raw)) {
+            String[] p = w.left().split("\\.");
+            if (p.length == 2 && p[1].equalsIgnoreCase("stmt#") && isNumeric(w.right())) {
+                String canon = synonyms.stream()
+                        .map(Synonym::name)
+                        .filter(n -> n.equalsIgnoreCase(p[0]))
+                        .findFirst()
+                        .orElse(p[0]);
+                Set<String> v = Set.of(w.right());
+                m.put(canon, v);
+                m.put(canon.toUpperCase(), v);
+            }
+        }
     }
 
     private String transformQueryToApplyWith(String query) {
@@ -86,46 +103,44 @@ public class QueryEvaluator {
         return sb.toString();
     }
 
-    private List<String> extractSynonymsUsedInWith(String query) {
-        List<String> synonyms = new ArrayList<>();
-        for (WithClause withClause : parseWithClauses(query)) {
-            synonyms.add(withClause.left().split("\\.")[0]);
+    private List<String> extractSynonymsUsedInWith(String q) {
+        List<String> out = new ArrayList<>();
+        for (WithClause w : parseWithClauses(q)) {
+            out.add(w.left().split("\\.")[0].toUpperCase());
         }
-        return synonyms;
+        return out;
     }
 
-    private String returnWithValue(String synonym, String query) {
-        String value = "";
-        for (WithClause w : parseWithClauses(query)) {
-            if (w.left().split("\\.")[0].equals(synonym)) {
-                value = w.right();
-                break;
+    private String returnWithValue(String syn, String q) {
+        for (WithClause w : parseWithClauses(q)) {
+            if (w.left().split("\\.")[0].equalsIgnoreCase(syn)) {
+                return w.right();
             }
         }
-        return value;
+        return "";
     }
 
-    private Set<String> processQuery(String query) {
-        List<Relationship> relationships = extractRelationships(query);
-        Map<String, Set<String>> partialSolutions = initSynonymMap();
+    private Set<String> processQuery(String processed, String raw) {
+        List<Relationship> relationships = extractRelationships(processed);
+        Map<String, Set<String>> partial = initSynonymMap();
         boolean first = true;
 
         for (Relationship r : relationships) {
-            Map<String, Set<String>> localResults = initSynonymMap();
-            applyRelationship(r, localResults);
-
-            for (String syn : localResults.keySet()) {
-                Set<String> vals = localResults.get(syn);
-                if (first) {
-                    partialSolutions.put(syn, new HashSet<>(vals));
-                } else {
-                    partialSolutions.get(syn).retainAll(vals);
-                }
+            Map<String, Set<String>> local = initSynonymMap();
+            applyRelationship(r, local);
+            for (Map.Entry<String, Set<String>> e : local.entrySet()) {
+                Set<String> tgt = ensureKey(partial, e.getKey()).get(e.getKey());
+                if (first) tgt.addAll(e.getValue());
+                else       tgt.retainAll(e.getValue());
             }
             first = false;
         }
-        handlePatterns(query, partialSolutions);
-        return finalizeResult(query, partialSolutions);
+
+        handlePatterns(raw, partial);
+        applyWithConstraints(raw, partial);
+        ensureAllSynonyms(partial);
+        String aha = "aha";
+        return finalizeResult(processed, partial);
     }
 
     private void applyRelationship(Relationship r, Map<String, Set<String>> partial) {
@@ -142,6 +157,27 @@ public class QueryEvaluator {
             case FOLLOWS -> handleFollows(left, right, partial);
             case MODIFIES -> handleModifies(left, right, partial);
             case USES -> handleUses(left, right, partial);
+        }
+    }
+
+
+    private Set<String> domain(SynonymType t) {
+        return switch (t) {
+            case STMT      -> pkb.getAllStmts().stream().map(String::valueOf).collect(Collectors.toSet());
+            case ASSIGN    -> pkb.getAllStmts().stream().filter(s -> pkb.getStmtType(s) == EntityType.ASSIGN).map(String::valueOf).collect(Collectors.toSet());
+            case WHILE     -> pkb.getAllStmts().stream().filter(s -> pkb.getStmtType(s) == EntityType.WHILE).map(String::valueOf).collect(Collectors.toSet());
+            case IF        -> pkb.getAllStmts().stream().filter(s -> pkb.getStmtType(s) == EntityType.IF).map(String::valueOf).collect(Collectors.toSet());
+            case CALL      -> pkb.getAllStmts().stream().filter(s -> pkb.getStmtType(s) == EntityType.CALL).map(String::valueOf).collect(Collectors.toSet());
+            case PROCEDURE -> new HashSet<>(pkb.getAllProcedures());
+            case VARIABLE  -> new HashSet<>(pkb.getAllVariables());
+            default        -> new HashSet<>();
+        };
+    }
+
+
+    private void ensureAllSynonyms(Map<String, Set<String>> map) {
+        for (Synonym s : synonyms) {
+            map.computeIfAbsent(s.name(), k -> domain(s.type()));
         }
     }
 
@@ -204,10 +240,12 @@ public class QueryEvaluator {
     }
 
     private Map<String, Set<String>> initSynonymMap() {
-        Map<String, Set<String>> map = new HashMap<>();
-        for (Synonym syn : synonyms) {
-            map.put(syn.name(), new HashSet<>());
-        }
+        return new HashMap<>();
+    }
+
+
+    private Map<String, Set<String>> ensureKey(Map<String, Set<String>> map, String key) {
+        map.computeIfAbsent(key, k -> new HashSet<>());
         return map;
     }
 
@@ -219,17 +257,17 @@ public class QueryEvaluator {
             for (String proc : pkb.getCallsMap().keySet()) {
                 Set<String> allCallees = pkb.getCallsStar(proc);
                 for (String c : allCallees) {
-                    partialSolutions.get(left).add(proc);
-                    partialSolutions.get(right).add(c);
+                    ensureKey(partialSolutions, left).get(left).add(proc);
+                    ensureKey(partialSolutions,right).get(right).add(c);
                 }
             }
         } else if (isStringLiteral(left) && synonymsContain(right)) {
             Set<String> callees = pkb.getCallsStar(caller);
-            partialSolutions.get(right).addAll(callees);
+            ensureKey(partialSolutions,right).get(right).addAll(callees);
         } else if (isStringLiteral(right) && synonymsContain(left)) {
             for (String proc : pkb.getCallsMap().keySet()) {
                 if (pkb.getCallsStar(proc).contains(callee)) {
-                    partialSolutions.get(left).add(proc);
+                    ensureKey(partialSolutions,left).get(left).add(proc);
                 }
             }
         }
@@ -241,51 +279,60 @@ public class QueryEvaluator {
             int c = Integer.parseInt(right);
             Set<Integer> parents = pkb.getParentStar(c);
             if (parents.isEmpty()) {
-                partialSolutions.get(left).add("none");
+                ensureKey(partialSolutions,left).get(left).add("none");
             } else {
                 for (int p : parents)
-                    partialSolutions.get(left).add(String.valueOf(p));
+                    ensureKey(partialSolutions,left).get(left).add(String.valueOf(p));
             }
         }
         if (isNumeric(left) && synonymsContain(right)) {
             int p = Integer.parseInt(left);
             Set<Integer> descendants = pkb.getParentedStarBy(p);
             if (descendants.isEmpty()) {
-                partialSolutions.get(right).add("none");
+                ensureKey(partialSolutions,right).get(right).add("none");
             } else {
                 for (int d : descendants)
-                    partialSolutions.get(right).add(String.valueOf(d));
+                    ensureKey(partialSolutions,right).get(right).add(String.valueOf(d));
             }
         }
     }
 
-    private void handleFollowsStar(String left, String right, Map<String, Set<String>> partialSolutions) {
+    private void handleFollowsStar(String left, String right, Map<String, Set<String>> partial) {
         if (isNumeric(right) && synonymsContain(left)) {
-            int c = Integer.parseInt(right);
-            Set<Integer> parents = pkb.getFollowedByStar(c);
-            for (int p : parents)
-                partialSolutions.get(left).add(String.valueOf(p));
+            Set<String> set = ensureKey(partial, left).get(left);
+            int r = Integer.parseInt(right);
+            Set<Integer> preds = pkb.getFollowedByStar(r);
+            if (preds.isEmpty()) {
+                set.add("none");
+            } else {
+                for (int p : preds) set.add(String.valueOf(p));
+            }
         }
+
         if (isNumeric(left) && synonymsContain(right)) {
-            int p = Integer.parseInt(left);
-            Set<Integer> descendants = pkb.getFollowsStar(p);
-            for (int d : descendants)
-                partialSolutions.get(right).add(String.valueOf(d));
+            Set<String> set = ensureKey(partial, right).get(right);
+            int l = Integer.parseInt(left);
+            Set<Integer> succs = pkb.getFollowsStar(l);
+            if (succs.isEmpty()) {
+                set.add("none");
+            } else {
+                for (int s : succs) set.add(String.valueOf(s));
+            }
         }
-        if(synonymsContain(left) && synonymsContain(right)){
-            Set<String> leftResults = new HashSet<>();
-            Set<String> rightResults = new HashSet<>();
-            Set<Integer> parents = pkb.getAllStmts();
+
+        if (synonymsContain(left) && synonymsContain(right)) {
+            Set<String> lRes = new HashSet<>();
+            Set<String> rRes = new HashSet<>();
             for (int s : pkb.getAllStmts()) {
-                Set<Integer> followers = pkb.getFollowsStar(s);
-                for (int w : followers) {
-                    leftResults.add(String.valueOf(s));
-                    rightResults.add(String.valueOf(w));
+                for (int t : pkb.getFollowsStar(s)) {
+                    lRes.add(String.valueOf(s));
+                    rRes.add(String.valueOf(t));
                 }
             }
-
-            partialSolutions.put(left, leftResults);
-            partialSolutions.put(right, rightResults);
+            if (lRes.isEmpty()) lRes.add("none");
+            if (rRes.isEmpty()) rRes.add("none");
+            partial.put(left, lRes);
+            partial.put(right, rRes);
         }
     }
 
@@ -297,17 +344,17 @@ public class QueryEvaluator {
             for (Map.Entry<String, Set<String>> entry : pkb.getCallsMap().entrySet()) {
                 String procCaller = entry.getKey();
                 for (String procCallee : entry.getValue()) {
-                    partialSolutions.get(left).add(procCaller);
-                    partialSolutions.get(right).add(procCallee);
+                    ensureKey(partialSolutions,left).get(left).add(procCaller);
+                    ensureKey(partialSolutions,right).get(right).add(procCallee);
                 }
             }
         } else if (isStringLiteral(left) && synonymsContain(right)) {
             Set<String> callees = pkb.getCalls(caller);
-            partialSolutions.get(right).addAll(callees);
+            ensureKey(partialSolutions,right).get(right).addAll(callees);
         } else if (isStringLiteral(right) && synonymsContain(left)) {
             for (Map.Entry<String, Set<String>> entry : pkb.getCallsMap().entrySet()) {
                 if (entry.getValue().contains(callee)) {
-                    partialSolutions.get(left).add(entry.getKey());
+                    ensureKey(partialSolutions,left).get(left).add(entry.getKey());
                 }
             }
         }
@@ -318,21 +365,21 @@ public class QueryEvaluator {
             int c = Integer.parseInt(right);
             Integer i = pkb.getParent(c);
             if (i == -1) {
-                partialSolutions.get(left).add("none");
+                ensureKey(partialSolutions,left).get(left).add("none");
                 return;
             }
             int p = i;
             if (p > 0)
-                partialSolutions.get(left).add(String.valueOf(p));
+                ensureKey(partialSolutions,left).get(left).add(String.valueOf(p));
         }
         if (isNumeric(left) && synonymsContain(right)) {
             int p = Integer.parseInt(left);
             Set<Integer> kids = pkb.getParentedBy(p);
             if (kids.isEmpty()) {
-                partialSolutions.get(right).add("none");
+                ensureKey(partialSolutions,right).get(right).add("none");
             } else {
                 for (int k : kids)
-                    partialSolutions.get(right).add(String.valueOf(k));
+                    ensureKey(partialSolutions,right).get(right).add(String.valueOf(k));
             }
         }
     }
@@ -342,18 +389,18 @@ public class QueryEvaluator {
             int r = Integer.parseInt(right);
             Integer i = pkb.getFollowedBy(r);
             if (i == null) {
-                partialSolutions.get(left).add("none");
+                ensureKey(partialSolutions,left).get(left).add("none");
                 return;
             }
             int f = i;
             if (f > 0)
-                partialSolutions.get(left).add(String.valueOf(f));
+                ensureKey(partialSolutions, left).get(left).add(String.valueOf(f));
         }
         if (isNumeric(left) && synonymsContain(right)) {
             int f = Integer.parseInt(left);
             Integer succ = pkb.getFollows(f);
             if (succ != null)
-                partialSolutions.get(right).add(String.valueOf(succ));
+                ensureKey(partialSolutions, right).get(right).add(String.valueOf(succ));
         }
     }
 
@@ -382,31 +429,31 @@ public class QueryEvaluator {
             for (int stmt : pkb.getAllStmts()) {
                 if (pkb.getModifiedByStmt(stmt).stream()
                         .anyMatch(v -> v.equalsIgnoreCase(rightLit))) {
-                    partial.get(left).add(String.valueOf(stmt));
+                    ensureKey(partial,left).get(left).add(String.valueOf(stmt));
                 }
             }
             for (String proc : pkb.getAllProcedures()) {
                 if (pkb.getModifiedByProc(proc).stream()
                         .anyMatch(v -> v.equalsIgnoreCase(rightLit))) {
-                    partial.get(left).add(proc);
+                    ensureKey(partial,left).get(left).add(proc);
                 }
             }
             return;
         }
 
         if (leftIsNum && synonymsContain(right)) {
-            partial.get(right).addAll(pkb.getModifiedByStmt(Integer.parseInt(left)));
+            ensureKey(partial,right).get(right).addAll(pkb.getModifiedByStmt(Integer.parseInt(left)));
         }
 
         if (leftLit != null && synonymsContain(right)) {
-            partial.get(right).addAll(pkb.getModifiedByProc(leftLit));
+            ensureKey(partial,right).get(right).addAll(pkb.getModifiedByProc(leftLit));
         }
 
         if (!leftIsNum && synonymsContain(left) && synonymsContain(right)) {
             for (String proc : pkb.getAllProcedures()) {
                 for (String var : pkb.getModifiedByProc(proc)) {
-                    partial.get(left).add(proc);
-                    partial.get(right).add(var);
+                    ensureKey(partial,left).get(left).add(proc);
+                    ensureKey(partial,right).get(right).add(var);
                 }
             }
         }
@@ -414,8 +461,8 @@ public class QueryEvaluator {
         if (synonymsContain(left) && synonymsContain(right)) {
             for (int stmt : pkb.getAllStmts()) {
                 for (String var : pkb.getModifiedByStmt(stmt)) {
-                    partial.get(left).add(String.valueOf(stmt));
-                    partial.get(right).add(var);
+                    ensureKey(partial,left).get(left).add(String.valueOf(stmt));
+                    ensureKey(partial,right).get(right).add(var);
                 }
             }
         }
@@ -424,7 +471,7 @@ public class QueryEvaluator {
             for (String proc : pkb.getAllProcedures()) {
                 if (pkb.getModifiedByProc(proc).stream()
                         .anyMatch(v -> v.equalsIgnoreCase(rightLit))) {
-                    partial.get(left).add(proc);
+                    ensureKey(partial,left).get(left).add(proc);
                 }
             }
         }
@@ -446,27 +493,27 @@ public class QueryEvaluator {
             for (int stmt : pkb.getAllStmts()) {
                 if (pkb.getUsedByStmt(stmt).stream()
                         .anyMatch(v -> v.equalsIgnoreCase(rightLit))) {
-                    partial.get(left).add(String.valueOf(stmt));
+                    ensureKey(partial,left).get(left).add(String.valueOf(stmt));
                 }
             }
             return;
         }
 
         if (leftIsNum && synonymsContain(right)) {
-            partial.get(right).addAll(pkb.getUsedByStmt(Integer.parseInt(left)));
+            ensureKey(partial,right).get(right).addAll(pkb.getUsedByStmt(Integer.parseInt(left)));
             return;
         }
 
         if (leftIsLit && synonymsContain(right)) {
-            partial.get(right).addAll(pkb.getUsedByProc(leftLit));
+            ensureKey(partial,right).get(right).addAll(pkb.getUsedByProc(leftLit));
             return;
         }
 
         if (isProcSyn(left) && synonymsContain(right)) {
             for (String proc : pkb.getAllProcedures()) {
                 for (String var : pkb.getUsedByProc(proc)) {
-                    partial.get(left).add(proc);
-                    partial.get(right).add(var);
+                    ensureKey(partial,left).get(left).add(proc);
+                    ensureKey(partial,right).get(right).add(var);
                 }
             }
             return;
@@ -475,8 +522,8 @@ public class QueryEvaluator {
         if (isStmtSyn(left) && synonymsContain(right)) {
             for (int stmt : pkb.getAllStmts()) {
                 for (String var : pkb.getUsedByStmt(stmt)) {
-                    partial.get(left).add(String.valueOf(stmt));
-                    partial.get(right).add(var);
+                    ensureKey(partial,left).get(left).add(String.valueOf(stmt));
+                    ensureKey(partial,right).get(right).add(var);
                 }
             }
             return;
@@ -485,7 +532,7 @@ public class QueryEvaluator {
         if (isProcSyn(left) && rightLit != null) {
             for (String proc : pkb.getAllProcedures()) {
                 if (pkb.getUsedByProc(proc).contains(rightLit)) {
-                    partial.get(left).add(proc);
+                    ensureKey(partial,left).get(left).add(proc);
                 }
             }
         }
@@ -560,20 +607,31 @@ public class QueryEvaluator {
         }
     }
 
+    // --- replace the old method entirely -------------------------------
     private List<WithClause> parseWithClauses(String query) {
-        String[] split = query.split("WITH");
-        List<WithClause> withClauses = new ArrayList<>();
-        for (int i = 1; i < split.length; i++) {
-            String[] clauses = split[i].split("SUCH THAT|AND|SELECT");
-            for (int j = 0; j < clauses.length; j++) {
 
-                String[] parts = clauses[j].split("=");
-                if (parts.length == 2) {
-                    withClauses.add(new WithClause(parts[0].trim(), parts[1].trim()));
+        /*  (?i)     – turn on case-insensitive matching
+         *  \\bWITH\\b – split exactly on the word WITH
+         */
+        String[] sections = query.split("(?i)\\bWITH\\b");
+
+        List<WithClause> clauses = new ArrayList<>();
+
+        /*  Inside the WITH-part we must stop once we reach the next
+         *  keyword (SUCH THAT / AND / SELECT); again all case-insensitive.
+         */
+        for (int i = 1; i < sections.length; i++) {
+            String[] parts = sections[i]
+                    .split("(?i)\\bSUCH\\s+THAT\\b|(?i)\\bAND\\b|(?i)\\bSELECT\\b");
+
+            for (String part : parts) {
+                String[] eq = part.split("=");
+                if (eq.length == 2) {
+                    clauses.add(new WithClause(eq[0].trim(), eq[1].trim()));
                 }
             }
         }
-        return withClauses;
+        return clauses;
     }
 
     private static String toUpperCaseOutsideQuotes(String input) {
