@@ -1,1 +1,1 @@
-For query Select s such that Follows* (s, s1) with s1.stmt# = 8: #Query is not valid
+For query Select s such that Follows* (s, s1) with s1.stmt# = 8: 1, 2, 3, 4, 5, 6, 7
