@@ -1,0 +1,90 @@
+variable v;
+Select v such that Modifies (2, v)
+width
+variable v;
+Select v such that Modifies (5, v)
+left, right
+variable v;
+Select v such that Modifies ("Init", v)
+x1, x2, y1, y2, left, right, top, bottom, incre, decrement
+variable v;
+Select v such that Modifies (13, v)
+difference
+variable v;
+Select v such that Modifies (26, v)
+y1, y2
+variable v;
+Select v such that Modifies(19, v)
+radius
+variable v;
+Select v such that Modifies(24, v)
+y1
+variable v;
+Select v such that Modifies(25, v)
+y2
+variable v;
+Select v such that Modifies(41, v)
+decrement, factor, incre, x1, x2, y1, y2
+variable v;
+Select v such that Modifies(38, v)
+I, decrement, distance, factor, incre, left, right, tmp, volume, x1, x2, y1, y2
+variable v;
+Select v such that Modifies("Transform", v)
+weight, tmp, incre, decrement, x1, x2, y1, y2
+variable v;
+Select v such that Modifies("Shift", v)
+top, bottom, x3, x4, x5, x6, x7, x8, x9
+variable v;
+Select v such that Modifies("TT", v)
+cs1, cs5, cs6, cs8, cs9
+variable v;
+Select v such that Modifies("Main", v)
+I, area, asterick, b, base, blue, bottom, c, circumference, decrement, depth, difference, distance, dot, dx, dy, edge, factor, green, height, incre, j, left, length, line, marking, notmove, p1, p2, pct, peak, pink, pixel, radius, range, right, s, semi, temporary, tmp, top, total, triangle, trim, volume, weight, width, x, x1, x2, x3, x4, x5, x6, x7, x8, x9, y1, y2, y7
+variable v;
+Select v such that Modifies(38, v)
+I, decrement, distance, factor, incre, left, right, tmp, volume, x1, x2, y1, y2
+variable v;
+Select v such that Modifies("Clear", v)
+p1, p2, s
+variable v;
+Select v such that Modifies("Shear", v)
+decrement, factor, incre, x1, x2, y1, y2
+variable v;
+Select v such that Modifies("Shrink", v)
+I, asterick, blue, dx, dy, factor, green, j, left, marking, p1, p2, pct, peak, pink, range, right, s, trim, x1, x2, y1, y2
+variable v;
+Select v such that Modifies("Rotate", v)
+base, blue, dot, dx, edge, green, height, left, pink, right, semi, triangle
+variable v;
+Select v such that Modifies("PP", v)
+cs1, cs2, cs3, cs5, cs6, cs8, cs9
+variable v;
+Select v such that Modifies("Scale", v)
+location
+variable v;
+Select v such that Modifies("Fill", v)
+depth, semi
+variable v;
+Select v such that Modifies("Enlarge", v)
+blue, depth, edge, green, line, notmove, pink, pixel, semi, temporary, total
+variable v;
+Select v such that Modifies(104, v)
+circumference
+variable v;
+Select v such that Modifies("RR", v)
+cs1, cs2, cs3, cs5, cs6, cs8, cs9
+variable v;
+Select v such that Modifies(250, v)
+I, j, x1, x2, y1, y2
+variable v; stmt s;
+Select v such that Modifies(s, v) with s.stmt# = 24
+y1
+variable v;
+Select v such that Modifies("Transform", v) and Modifies("Shear", v)
+decrement, incre, x1, x2, y1, y2
+assign a; variable v;
+Select a pattern a("x1", _) such that Modifies(a, v)
+120, 138, 164, 165, 174, 182, 245, 252, 67, 7
+variable v; procedure p;
+Select v such that Modifies(p, v) with p.procName = "Init"
+bottom, decrement, incre, left, right, top, x1, x2, y1, y2
