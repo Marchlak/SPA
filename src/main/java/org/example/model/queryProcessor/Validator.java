@@ -1,7 +1,9 @@
 package org.example.model.queryProcessor;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 public class Validator {
@@ -71,9 +73,12 @@ public class Validator {
 
     private String relationsAlternation(String synAlt) {
         String stmt = synAlt.isEmpty() ? "_|[0-9]+" : synAlt + "|_|[0-9]+";
-        String ent = synAlt.isEmpty() ? "_|\\\"[A-Z][A-Z0-9]*\\\"" : synAlt + "|_|\\\"[A-Z][A-Z0-9]*\\\"";
+        String entPattern = "\\\"[A-Z][A-Z0-9]*\\\"";
+        String ent = synAlt.isEmpty() ? "_|" + entPattern : synAlt + "|_|" + entPattern;
         return rel("MODIFIES", stmt, ent) + '|' +
+                rel("MODIFIES", ent, ent) + '|' +
                 rel("USES", stmt, ent) + '|' +
+                rel("USES", ent, ent) + '|' +
                 rel("PARENT", stmt, stmt) + '|' +
                 rel("PARENT\\*", stmt, stmt) + '|' +
                 rel("FOLLOWS", stmt, stmt) + '|' +
@@ -89,16 +94,34 @@ public class Validator {
     }
 
     private String attributesAlternation() {
-        StringBuilder sb = new StringBuilder();
+        List<String> patterns = new ArrayList<>();
+        // literal comparisons
         for (Synonym s : synonyms) {
             switch (s.type()) {
-                case STMT, ASSIGN, WHILE, IF -> sb.append(s.name()).append("\\.STMT#\\s*=\\s*[0-9]+").append('|');
-                case VARIABLE -> sb.append(s.name()).append("\\.VARNAME\\s*=\\s*\\\"[A-Z][A-Z0-9]*\\\"").append('|');
-                case CONSTANT -> sb.append(s.name()).append("\\.VALUE\\s*=\\s*\\d+").append('|');
-                case PROCEDURE -> sb.append(s.name()).append("\\.PROCNAME\\s*=\\s*\\\"[A-Z][A-Z0-9]*\\\"").append('|');
+                case STMT, ASSIGN, WHILE, IF ->
+                        patterns.add(s.name() + "\\.STMT#\\s*=\\s*[0-9]+");
+                case VARIABLE ->
+                        patterns.add(s.name() + "\\.VARNAME\\s*=\\s*\\\"[A-Z][A-Z0-9]*\\\"");
+                case CONSTANT ->
+                        patterns.add(s.name() + "\\.VALUE\\s*=\\s*\\d+");
+                case PROCEDURE ->
+                        patterns.add(s.name() + "\\.PROCNAME\\s*=\\s*\\\"[A-Z][A-Z0-9]*\\\"");
             }
         }
-        sb.setLength(sb.length() - 1);
-        return sb.toString();
+
+        List<Synonym> numericSyns = synonyms.stream()
+                .filter(s -> switch (s.type()) {
+                    case STMT, ASSIGN, WHILE, IF, CONSTANT -> true;
+                    default -> false;
+                })
+                .toList();
+        for (Synonym s1 : numericSyns) {
+            String attr1 = (s1.type() == SynonymType.CONSTANT) ? "VALUE" : "STMT#";
+            for (Synonym s2 : numericSyns) {
+                String attr2 = (s2.type() == SynonymType.CONSTANT) ? "VALUE" : "STMT#";
+                patterns.add(s1.name() + "\\." + attr1 + "\\s*=\\s*" + s2.name() + "\\." + attr2);
+            }
+        }
+        return String.join("|", patterns);
     }
 }

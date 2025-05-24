@@ -40,6 +40,11 @@ public class PKB {
     private final Map<String, Set<Integer>> assignLhsToStmts = new HashMap<>();
 
     private final Map<Integer, Set<String>> ifControlVars = new HashMap<>();
+    private final Set<String> constants = new HashSet<>();
+
+    public void addConstant(String value){ constants.add(value); }
+
+public Set<String> getAllConstants() { return new HashSet<>(constants); }
     public void setAssignLhs(int stmt, String var) {
         assignLhsToStmts.computeIfAbsent(var, k -> new HashSet<>()).add(stmt);
     }

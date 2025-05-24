@@ -80,5 +80,6 @@ for test_file in test_files:
         print(f"{YELLOW}Last test: For query {query}: {answer}{RESET}")
         print(f"{CYAN}{'-'*40}{RESET}")
 if error_count:
+    print(f"tyle errorów {error_count}")
     sys.exit(1)
 sys.exit(0)

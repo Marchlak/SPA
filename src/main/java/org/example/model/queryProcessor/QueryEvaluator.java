@@ -48,8 +48,9 @@ public class QueryEvaluator {
     private String buildResult(String queryTail,
                                Map<String, Set<String>> sol) {
 
+        /* w buildResult() */
         String selectRaw = queryTail.split("(?i)\\bSELECT\\b")[1]
-                .split("(?i)\\bSUCH\\s+THAT\\b|(?i)\\bWITH\\b")[0]
+                .split("(?i)\\bSUCH\\s+THAT\\b|(?i)\\bWITH\\b|(?i)\\bPATTERN\\b")[0]
                 .trim();
 
         if (selectRaw.trim().toUpperCase().startsWith("BOOLEAN")) {
@@ -126,18 +127,44 @@ public class QueryEvaluator {
 
     private void applyWithConstraints(String raw, Map<String, Set<String>> m) {
         for (WithClause w : parseWithClauses(raw)) {
-            String[] p = w.left().split("\\.");
-            if (p.length == 2 && p[1].equalsIgnoreCase("stmt#") && isNumeric(w.right())) {
-                String canon = synonyms.stream()
-                        .map(Synonym::name)
-                        .filter(n -> n.equalsIgnoreCase(p[0]))
-                        .findFirst()
-                        .orElse(p[0]);
+
+            String[] l = w.left().split("\\.");
+            String[] r = w.right().split("\\.");
+
+            if (l.length==2 && "stmt#".equalsIgnoreCase(l[1]) && isNumeric(w.right())) {
+                String syn = canonical(l[0]);
                 Set<String> v = Set.of(w.right());
-                m.put(canon, v);
-                m.put(canon.toUpperCase(), v);
+                m.put(syn, v);  m.put(syn.toUpperCase(), v);
+                continue;
+            }
+
+            if (l.length==2 && r.length==2
+                    &&  "stmt#".equalsIgnoreCase(l[1])
+                    &&  "value".equalsIgnoreCase(r[1])) {
+
+                String stmtSyn   = canonical(l[0]);
+                String constSyn  = canonical(r[0]);
+
+                Set<String> leftDomain  = new HashSet<>(m
+                        .getOrDefault(stmtSyn,  domain(getSynType(stmtSyn))));
+                Set<String> rightDomain = new HashSet<>(m
+                        .getOrDefault(constSyn, domain(getSynType(constSyn))));
+
+                leftDomain.retainAll(rightDomain);
+                rightDomain.retainAll(leftDomain);
+
+                m.put(stmtSyn,  leftDomain);
+                m.put(constSyn, rightDomain);
             }
         }
+    }
+    /* pomocniczo: */
+    private String canonical(String syn) {
+        return synonyms.stream()
+                .map(Synonym::name)
+                .filter(n -> n.equalsIgnoreCase(syn))
+                .findFirst()
+                .orElse(syn);
     }
 
     private String transformQueryToApplyWith(String query) {
@@ -254,6 +281,7 @@ public class QueryEvaluator {
                     pkb.getAllStmts().stream().filter(s -> pkb.getStmtType(s) == EntityType.CALL).map(String::valueOf).collect(Collectors.toSet());
             case PROCEDURE -> new HashSet<>(pkb.getAllProcedures());
             case VARIABLE -> new HashSet<>(pkb.getAllVariables());
+            case CONSTANT  -> new HashSet<>(pkb.getAllConstants());
             default -> new HashSet<>();
         };
     }
@@ -261,7 +289,12 @@ public class QueryEvaluator {
 
     private void ensureAllSynonyms(Map<String, Set<String>> map) {
         for (Synonym s : synonyms) {
-            map.computeIfAbsent(s.name(), k -> domain(s.type()));
+            Set<String> dom = domain(s.type());
+            String raw   = s.name();
+            String upper = raw.toUpperCase();
+
+            map.computeIfAbsent(raw,   k -> new HashSet<>(dom));
+            map.computeIfAbsent(upper, k -> new HashSet<>(dom));
         }
     }
 
@@ -848,34 +881,6 @@ public class QueryEvaluator {
         }
     }
 
-    private void handlePatterns(String query, Map<String, Set<String>> partial) {
-        Pattern p = Pattern.compile(
-                "pattern\\s+([A-Za-z][A-Za-z0-9]*)\\s*\\(([^()]*?(?:\\([^()]*\\)[^()]*)*?)\\)",
-                Pattern.CASE_INSENSITIVE
-        );
-
-        Matcher m = p.matcher(query);
-        while (m.find()) {
-            String synonymName = m.group(1).trim();
-            String argsRaw = m.group(2).trim();
-
-            SynonymType synType = synonyms.stream()
-                    .filter(s -> s.name().equalsIgnoreCase(synonymName))
-                    .map(Synonym::type)
-                    .findFirst()
-                    .orElseThrow(() -> new IllegalArgumentException("Unknown synonym in PATTERN clause: " + synonymName));
-
-            List<String> args = splitPatternArgs(argsRaw);
-
-            if (args.size() == 2) {
-                handlePattern2Args(synType, synonymName, args.get(0), args.get(1), partial);
-            } else if (args.size() == 3) {
-                handlePattern3Args(synType, synonymName, args.get(0), args.get(1), args.get(2), partial);
-            } else {
-                throw new IllegalArgumentException("Invalid number of arguments in pattern clause for synonym: " + synonymName);
-            }
-        }
-    }
 
     private List<String> splitPatternArgs(String argsRaw) {
         List<String> args = new ArrayList<>();
@@ -902,16 +907,44 @@ public class QueryEvaluator {
         return args;
     }
 
+    private void handlePatterns(String query, Map<String, Set<String>> partial) {
+
+        Pattern p = Pattern.compile(
+                "pattern\\s+([A-Za-z][A-Za-z0-9]*)\\s*\\(([^()]*?(?:\\([^()]*\\)[^()]*)*?)\\)",
+                Pattern.CASE_INSENSITIVE);
+
+        Matcher m = p.matcher(query);
+        while (m.find()) {
+            String synName = m.group(1).trim();
+            String argsRaw = m.group(2).trim();
+
+            SynonymType synType = synonyms.stream()
+                    .filter(s -> s.name().equalsIgnoreCase(synName))
+                    .map(Synonym::type)
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "Unknown synonym in PATTERN clause: " + synName));
+
+            List<String> args = splitPatternArgs(argsRaw);
+
+            if (args.size() == 2) {
+                handlePattern2Args(synType, synName, args.get(0), args.get(1), partial);
+            } else if (args.size() == 3) {
+                handlePattern3Args(synType, synName, args.get(0), args.get(1), args.get(2), partial);
+            } else {
+                throw new IllegalArgumentException("Invalid number of arguments in pattern clause for synonym: " + synName);
+            }
+        }
+    }
 
     private void handlePattern2Args(SynonymType synType,
-                                    String synName,
+                                    String synNameRaw,
                                     String arg1,
                                     String arg2,
                                     Map<String, Set<String>> partial) {
 
-
-        partial.computeIfAbsent(synName, k -> new HashSet<>());
-
+        String synKey = synNameRaw.toUpperCase();
+        partial.computeIfAbsent(synKey, k -> new HashSet<>());
 
         if (synType == SynonymType.ASSIGN) {
 
@@ -946,8 +979,7 @@ public class QueryEvaluator {
                         result.add(String.valueOf(stmt));
                 }
             }
-
-            partial.put(synName, result);
+            partial.put(synKey, result);
             if (!result.isEmpty())
                 partial.computeIfAbsent("BOOLEAN", k -> new HashSet<>()).add("T");
             return;
@@ -969,12 +1001,11 @@ public class QueryEvaluator {
                 matched = allWhiles;
             }
 
-            partial.put(synName, toStringSet(matched));
+            partial.put(synKey, toStringSet(matched));
             if (!matched.isEmpty())
                 partial.computeIfAbsent("BOOLEAN", k -> new HashSet<>()).add("T");
             return;
         }
-
 
         if (synType == SynonymType.IF) {
 
@@ -983,9 +1014,9 @@ public class QueryEvaluator {
             boolean any = arg1.equals("_");
             boolean lit = arg1.startsWith("\"") && arg1.endsWith("\"");
             boolean syn = synonymsContain(arg1);
-            String litVal = lit ? arg1.substring(1, arg1.length() - 1) : null;
+            String  litVal = lit ? arg1.substring(1, arg1.length() - 1) : null;
 
-            if (syn) partial.computeIfAbsent(arg1, k -> new HashSet<>());
+            if (syn) partial.computeIfAbsent(arg1.toUpperCase(), k -> new HashSet<>());
 
             Set<String> matched = new HashSet<>();
 
@@ -1002,24 +1033,18 @@ public class QueryEvaluator {
                 } else if (syn) {
                     for (String v : ctrl) {
                         matched.add(String.valueOf(s));
-                        partial.get(arg1).add(v);
+                        partial.get(arg1.toUpperCase()).add(v);
                     }
                 }
             }
-
-            partial.get(synName).addAll(matched);
+            partial.get(synKey).addAll(matched);
             if (!matched.isEmpty())
                 partial.computeIfAbsent("BOOLEAN", k -> new HashSet<>()).add("T");
         }
     }
 
-
-    private Set<String> toStringSet(Set<Integer> ints) {
-        return ints.stream().map(String::valueOf).collect(Collectors.toSet());
-    }
-
     private void handlePattern3Args(SynonymType synType,
-                                    String synName,
+                                    String synNameRaw,
                                     String arg1,
                                     String arg2,
                                     String arg3,
@@ -1027,7 +1052,8 @@ public class QueryEvaluator {
 
         if (synType != SynonymType.IF) return;
 
-        partial.computeIfAbsent(synName, k -> new HashSet<>());
+        String synKey = synNameRaw.toUpperCase();
+        partial.computeIfAbsent(synKey, k -> new HashSet<>());
 
         if (arg1.equals("\"\"")) arg1 = "_";
 
@@ -1035,9 +1061,8 @@ public class QueryEvaluator {
         boolean lit = arg1.startsWith("\"") && arg1.endsWith("\"");
         boolean syn = synonymsContain(arg1);
 
-        if (syn) {
-            partial.computeIfAbsent(arg1, k -> new HashSet<>());
-        }
+        if (syn) partial.computeIfAbsent(arg1.toUpperCase(), k -> new HashSet<>());
+
         String litVal = lit ? arg1.substring(1, arg1.length() - 1) : null;
 
         Set<String> matches = new HashSet<>();
@@ -1055,15 +1080,18 @@ public class QueryEvaluator {
             } else if (syn) {
                 for (String v : ctrl) {
                     matches.add(String.valueOf(ifStmt));
-                    partial.get(arg1).add(v);
+                    partial.get(arg1.toUpperCase()).add(v);
                 }
             }
         }
 
-        partial.get(synName).addAll(matches);
-
+        partial.get(synKey).addAll(matches);
         if (!matches.isEmpty())
             partial.computeIfAbsent("BOOLEAN", k -> new HashSet<>()).add("T");
+    }
+
+    private Set<String> toStringSet(Set<Integer> ints) {
+        return ints.stream().map(String::valueOf).collect(Collectors.toSet());
     }
 
 

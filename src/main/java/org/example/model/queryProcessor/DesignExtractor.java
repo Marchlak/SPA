@@ -45,7 +45,6 @@ public class DesignExtractor {
             int curr = currentStmtNumber++;
             pkb.addStmt(curr, stmt.getType());
 
-            /* 1. relacje Parent / Follows / Next */
             if (!parentStack.isEmpty()) pkb.setParent(parentStack.peek(), curr);
             if (prev != null) {
                 pkb.setFollows(prev, curr);
@@ -53,11 +52,9 @@ public class DesignExtractor {
             }
             prev = curr;
 
-            /* 2. jeśli ktoś czekał na numer „następnej” */
             List<Runnable> hooks = pendingAfterIfEnds.remove(curr - 1);
             if (hooks != null) hooks.forEach(Runnable::run);
 
-            /* 3. obsługa konkretnego typu stmt */
             processStmt(stmt, curr);
             stmt = stmt.getRightSibling();
         }
@@ -84,7 +81,6 @@ public class DesignExtractor {
     }
 
     private void processAssign(TNode assignNode, int stmtNumber) {
-        // Handle Modifies (left side)
         TNode varNode = assignNode.getFirstChild();
         String varName = varNode.getAttr();
         pkb.addVariable(varName);
@@ -100,6 +96,7 @@ public class DesignExtractor {
         // Handle Uses (right side)
         TNode exprNode = varNode.getRightSibling();
         pkb.setAssignRhsTree(stmtNumber, exprNode);
+        collectConstants(exprNode);
         Set<String> usedVars = extractVariablesFromNode(exprNode);
         for (String usedVar : usedVars) {
             pkb.addVariable(usedVar);
@@ -117,6 +114,7 @@ public class DesignExtractor {
     private void processWhile(TNode whileNode, int whileNr) {
         TNode cond = whileNode.getFirstChild();
 
+        collectConstants(cond);
         Set<String> condVars = extractVariablesFromNode(cond);
 
         pkb.setWhileControlVars(whileNr, condVars);
@@ -183,7 +181,9 @@ public class DesignExtractor {
     private void processIf(TNode ifNode, int ifStmtNr) {
 
         TNode cond = ifNode.getFirstChild();
+        collectConstants(cond);
         Set<String> condVars = extractVariablesFromCond(cond);
+
 
         pkb.setIfControlVars(ifStmtNr, condVars);
 
@@ -317,6 +317,17 @@ public class DesignExtractor {
     private void addNextEdge(int from, int to) {
         pkb.addNext(from, to);
         cfg.computeIfAbsent(from, k -> new HashSet<>()).add(to);
+    }
+
+    private void collectConstants(TNode n) {
+        if (n == null) return;
+
+        if (n.getType() == EntityType.CONSTANT) {
+            pkb.addConstant(n.getAttr());
+        }
+        for (TNode c = n.getFirstChild(); c != null; c = c.getRightSibling()) {
+            collectConstants(c);
+        }
     }
 
     private void extractNextRelations() {
