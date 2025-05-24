@@ -1,9 +1,3 @@
-<<<<<<< HEAD:simple/future_implementation_test/test_BOOLEAN_source1.txt
-=======
-if ifstat; constant co;
-Select BOOLEAN pattern ifstat ("t", _) with co.value = 2
-true
->>>>>>> 49abbbb (working on next relationship feature, not working yet):simple/test5.txt
 prog_line n2;
 Select BOOLEAN such that Next (1, 2)
 true
