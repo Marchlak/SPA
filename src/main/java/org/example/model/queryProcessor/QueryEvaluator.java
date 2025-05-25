@@ -518,21 +518,27 @@ public class QueryEvaluator {
 
     private void handleFollows(String left, String right, Map<String, Set<String>> partialSolutions) {
         if (isNumeric(right) && synonymsContain(left)) {
-            int r = Integer.parseInt(right);
-            Integer i = pkb.getFollowedBy(r);
-            if (i == null) {
-                ensureKey(partialSolutions, left).get(left).add("none");
-                return;
-            }
-            int f = i;
-            if (f > 0)
-                ensureKey(partialSolutions, left).get(left).add(String.valueOf(f));
+            handleFollowedBy(Integer.parseInt(right), left, partialSolutions);
         }
+
         if (isNumeric(left) && synonymsContain(right)) {
-            int f = Integer.parseInt(left);
-            Integer succ = pkb.getFollows(f);
-            if (succ != null)
-                ensureKey(partialSolutions, right).get(right).add(String.valueOf(succ));
+            handleFollowsOf(Integer.parseInt(left), right, partialSolutions);
+        }
+    }
+
+    private void handleFollowedBy(int rightValue, String left, Map<String, Set<String>> partialSolutions) {
+        Integer result = pkb.getFollowedBy(rightValue);
+        ensureKey(partialSolutions, left);
+        if (result != null) {
+            partialSolutions.get(left).add(String.valueOf(result));
+        }
+    }
+
+    private void handleFollowsOf(int leftValue, String right, Map<String, Set<String>> partialSolutions) {
+        Integer result = pkb.getFollows(leftValue);
+        ensureKey(partialSolutions, right);
+        if (result != null) {
+            partialSolutions.get(right).add(String.valueOf(result));
         }
     }
 
