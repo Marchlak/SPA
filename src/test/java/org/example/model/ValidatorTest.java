@@ -271,4 +271,11 @@ class ValidatorTest {
         String query = "assign a; select a such that modifies(a, a) with";
         assertFalse(validator.isValid(query));
     }
+
+    @Test
+    void testCall() {
+        Validator v = new Validator();
+        String q = "call c; Select c such that Follows(c, 6)";
+        assertTrue(v.isValid(q));
+    }
 }
