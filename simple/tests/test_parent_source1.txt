@@ -22,3 +22,81 @@ none
 stmt s;
 Select s such that Parent (25, s)
 none
+stmt s;
+Select s such that Parent(2, s)
+none
+stmt s;
+Select s such that Parent(10, s)
+11,12
+stmt s;
+Select s such that Parent(18, s)
+19,20,21
+stmt s;
+Select s such that Parent(24, s)
+25,26
+stmt s;
+Select s such that Parent(1, s)
+none
+stmt s;
+Select s such that Parent(s, 12)
+10
+assign a;
+Select a such that Parent(8, a)
+9,13,14,16
+assign a;
+Select a such that Parent(10, a)
+11,12
+assign a;
+Select a such that Parent(a, 3)
+none
+while w;
+Select w such that Parent(w, 11)
+10
+while w;
+Select w such that Parent(w, 12)
+10
+while w;
+Select w such that Parent(w, 19)
+18
+while w;
+Select w such that Parent(8, w)
+10
+while w;
+Select w such that Parent(2, w)
+none
+if ifstat;
+Select ifstat such that Parent(23, ifstat)
+24
+if ifstat;
+Select ifstat such that Parent(2, ifstat)
+none
+stmt s; while w;
+Select w such that Parent(s, w)
+10
+stmt s; while w;
+Select s such that Parent(s, w)
+10, 18, 23, 24, 8
+stmt s; assign a;
+Select s such that Parent(s, a)
+10, 18, 23, 24, 8
+stmt s; assign a;
+Select a such that Parent(s, a)
+11, 12, 13, 14, 16, 19, 21, 25, 26, 9
+stmt s; assign a;
+Select a such that Parent(a, s)
+none
+while w; if ifstat;
+Select ifstat such that Parent(w, ifstat)
+24
+while w; if ifstat;
+Select w such that Parent(ifstat, w)
+10
+while w; if ifstat;
+Select w such that Parent(w, ifstat)
+23
+while w; assign a;
+Select a such that Parent(w, a)
+11, 12, 19, 21
+while w; assign a;
+Select w such that Parent(w, a)
+10,18

@@ -76,3 +76,87 @@ Select a such that Follows (a, 12)
 assign a;
 Select a such that Follows (a, 13)
 none
+assign a;
+Select a such that Follows(1, a)
+2
+assign a;
+Select a such that Follows(3, a)
+none
+stmt s;
+Select s such that Follows(3, s)
+4
+stmt s;
+Select s such that Follows(12, s)
+none
+stmt s;
+Select s such that Follows(15, s)
+16
+stmt s;
+Select s such that Follows(13, s)
+none
+while w;
+Select w such that Follows(w, 10)
+none
+while w;
+Select w such that Follows(w, 13)
+10
+while w;
+Select w such that Follows(w, 22)
+18
+while w;
+Select w such that Follows(w, 27)
+23
+while w;
+Select w such that Follows(9, w)
+10
+while w;
+Select w such that Follows(17, w)
+none
+call c;
+Select c such that Follows(c, 5)
+4
+call c;
+Select c such that Follows(15, c)
+none
+call c;
+Select c such that Follows(c, 21)
+20
+call c;
+Select c such that Follows(c, 7)
+6
+call c;
+Select c such that Follows(c, 6)
+none
+call c;
+Select c such that Follows(5, c)
+6
+call c;
+Select c such that Follows(14, c)
+15
+if ifstat;
+Select ifstat such that Follows(ifstat, 17)
+8
+if ifstat;
+Select ifstat such that Follows(7, ifstat)
+8
+if ifstat;
+Select ifstat such that Follows(6, ifstat)
+none
+if ifstat;
+Select ifstat such that Follows(ifstat, 9)
+none
+stmt s; while w;
+Select s such that Follows(s, w)
+9
+stmt s; while w;
+Select s such that Follows(w, s)
+none
+assign a; while w;
+Select a such that Follows(a, w)
+9
+assign a; if ifstat;
+Select ifstat such that Follows(a, ifstat)
+8
+if ifs; stmt s;
+Select s such that Follows(ifs, s)
+5
