@@ -77,7 +77,7 @@ public class QueryEvaluator {
             if (values.isEmpty()) return "none";
 
             /* ----- filtr po typie (ASSIGN, WHILE, IF, CALL) -------------- */
-            FilterByColumnType(col, values);
+            filterByColumnType(col, values);
 
             if (values.isEmpty()) return "none";
 
@@ -98,7 +98,7 @@ public class QueryEvaluator {
         return String.join(" | ", pieces);
     }
 
-    private void FilterByColumnType(String columnName, Set<String> values) {
+    private void filterByColumnType(String columnName, Set<String> values) {
         SynonymType type = synonyms.stream()
                 .filter(s -> s.name().equalsIgnoreCase(columnName))
                 .map(Synonym::type)
@@ -106,18 +106,22 @@ public class QueryEvaluator {
                 .orElse(null);
 
         if (type != null) {
-            EntityType stmtFilter = switch (type) {
-                case ASSIGN -> EntityType.ASSIGN;
-                case WHILE -> EntityType.WHILE;
-                case IF -> EntityType.IF;
-                case CALL -> EntityType.CALL;
+            Set<EntityType> allowedEntities = switch (type) {
+                case ASSIGN -> Set.of(EntityType.ASSIGN);
+                case WHILE -> Set.of(EntityType.WHILE);
+                case IF -> Set.of(EntityType.IF);
+                case CALL -> Set.of(EntityType.CALL);
+                case STMT -> Set.of(EntityType.IF,
+                        EntityType.WHILE,
+                        EntityType.CALL,
+                        EntityType.ASSIGN);
                 default -> null;
             };
 
-            if (stmtFilter != null) {
+            if (allowedEntities != null) {
                 values.removeIf(v -> {
                     try {
-                        return pkb.getStmtType(Integer.parseInt(v)) != stmtFilter;
+                        return !allowedEntities.contains(pkb.getEntityType(Integer.parseInt(v)));
                     } catch (NumberFormatException e) {
                         return true;
                     }
@@ -274,13 +278,13 @@ public class QueryEvaluator {
         return switch (t) {
             case STMT -> pkb.getAllStmts().stream().map(String::valueOf).collect(Collectors.toSet());
             case ASSIGN ->
-                    pkb.getAllStmts().stream().filter(s -> pkb.getStmtType(s) == EntityType.ASSIGN).map(String::valueOf).collect(Collectors.toSet());
+                    pkb.getAllStmts().stream().filter(s -> pkb.getEntityType(s) == EntityType.ASSIGN).map(String::valueOf).collect(Collectors.toSet());
             case WHILE ->
-                    pkb.getAllStmts().stream().filter(s -> pkb.getStmtType(s) == EntityType.WHILE).map(String::valueOf).collect(Collectors.toSet());
+                    pkb.getAllStmts().stream().filter(s -> pkb.getEntityType(s) == EntityType.WHILE).map(String::valueOf).collect(Collectors.toSet());
             case IF ->
-                    pkb.getAllStmts().stream().filter(s -> pkb.getStmtType(s) == EntityType.IF).map(String::valueOf).collect(Collectors.toSet());
+                    pkb.getAllStmts().stream().filter(s -> pkb.getEntityType(s) == EntityType.IF).map(String::valueOf).collect(Collectors.toSet());
             case CALL ->
-                    pkb.getAllStmts().stream().filter(s -> pkb.getStmtType(s) == EntityType.CALL).map(String::valueOf).collect(Collectors.toSet());
+                    pkb.getAllStmts().stream().filter(s -> pkb.getEntityType(s) == EntityType.CALL).map(String::valueOf).collect(Collectors.toSet());
             case PROCEDURE -> new HashSet<>(pkb.getAllProcedures());
             case VARIABLE -> new HashSet<>(pkb.getAllVariables());
             case CONSTANT  -> new HashSet<>(pkb.getAllConstants());
@@ -479,43 +483,87 @@ public class QueryEvaluator {
         }
     }
 
-    private void handleParent(String left,
-                              String right,
-                              Map<String, Set<String>> partial) {
+    private void handleParent(String left, String right, Map<String, Set<String>> partialSolutions) {
+        //Get all with that relations
+        Map<Integer, Integer> parentReversed = pkb.getParentMap();
 
-        if (synonymsContain(left) && synonymsContain(right)) {
+        //Reversing map - in pkb is <child, parent>
+        Map<Integer, Set<Integer>> relationsNotTyped = new HashMap<>();
+        for (Map.Entry<Integer, Integer> entry : parentReversed.entrySet()) {
+            Integer child = entry.getKey();
+            Integer parent = entry.getValue();
 
-            Set<String> lSet = partial.computeIfAbsent(left, k -> new HashSet<>());
-            Set<String> rSet = partial.computeIfAbsent(right, k -> new HashSet<>());
+            relationsNotTyped
+                    .computeIfAbsent(parent, k -> new HashSet<>())
+                    .add(child);
+        }
 
-            for (int parent : pkb.getAllStmts()) {
-                for (int child : pkb.getParentedBy(parent)) {
-                    lSet.add(String.valueOf(parent));
-                    rSet.add(String.valueOf(child));
-                }
+        //Replacing map to string substitute
+        Map<String, Set<String>> relations = substituteRelationFrom(relationsNotTyped);
+
+        partialSolutions.clear();
+        partialSolutions.putAll(handleRelation(left, right, relations));
+    }
+
+    private Map<String, Set<String>> substituteRelationFrom(Map<Integer, Set<Integer>> relations) {
+        return relations.entrySet().stream()
+                .collect(Collectors.toMap(
+                        e -> String.valueOf(e.getKey()),
+                        e -> e.getValue().stream()
+                                .map(String::valueOf)
+                                .collect(Collectors.toSet())
+                ));
+    }
+
+    /**
+     * Universal method for handling relation
+     *
+     * @param left Left synonim of the relation like "s" or "3".
+     * @param right Right synonim of the relation like "w".
+     * @param relations Map symbolising the relation like { "1" = ["2", "3"], "4" = ["5"] }
+     * @return Map with the result of that relation like { "w" = ["10"], "s" = [] }
+     */
+    private Map<String, Set<String>> handleRelation(String left, String right, Map<String, Set<String>> relations) {
+        Map<String, Set<String>> partialSolutions = new HashMap<>();
+
+        //Init partial solutions with synonims
+        //So when nothing is matched then no relation pairs were found not like relation check not existed
+        ensureKey(partialSolutions, left);
+        ensureKey(partialSolutions, right);
+
+        //When left is synonim filter relations keys by their type
+        if (synonymsContain(left)) {
+            Set<String> keys = relations.keySet();
+            filterByColumnType(left, keys);
+            relations.keySet().removeIf(k -> !keys.contains(k));
+        }
+        //When left is numeral filter relations keys - must have same number
+        else {
+            relations.keySet().removeIf(k -> !k.equals(left));
+        }
+
+        //When right is synonim type filter values by their type
+        if (synonymsContain(right)) {
+            for (Map.Entry<String, Set<String>> entry : relations.entrySet()) {
+                Set<String> modifiableValues = new HashSet<>(entry.getValue());
+
+                filterByColumnType(right, modifiableValues);
+                entry.setValue(modifiableValues);
             }
-
-            if (lSet.isEmpty()) lSet.add("none");
-            if (rSet.isEmpty()) rSet.add("none");
-            return;
         }
+        //When right is numeral type values for keys must have same number
+        else {
+            for (Map.Entry<String, Set<String>> entry : relations.entrySet()) {
+                Set<String> modifiableValues = new HashSet<>(entry.getValue());
 
-        if (isNumeric(right) && synonymsContain(left)) {
-            int c = Integer.parseInt(right);
-            Integer p = pkb.getParent(c);
-            ensureKey(partial, left).get(left)
-                    .add(p == -1 ? "none" : String.valueOf(p));
-            return;
+                modifiableValues.removeIf(k -> k.equals(right));
+                entry.setValue(modifiableValues);
+            }
         }
-
-        if (isNumeric(left) && synonymsContain(right)) {
-            int p = Integer.parseInt(left);
-            Set<Integer> kids = pkb.getParentedBy(p);
-            ensureKey(partial, right).get(right)
-                    .addAll(kids.isEmpty()
-                            ? Set.of("none")
-                            : kids.stream().map(String::valueOf).toList());
-        }
+        relations.entrySet().removeIf(entry -> entry.getValue().isEmpty());
+        partialSolutions.put(left, relations.keySet());
+        partialSolutions.put(right, relations.values().stream().flatMap(Collection::stream).collect(Collectors.toSet()));
+        return partialSolutions;
     }
 
     private void handleFollows(String left, String right, Map<String, Set<String>> partialSolutions) {
@@ -539,8 +587,8 @@ public class QueryEvaluator {
                     .map(String::valueOf)
                     .collect(Collectors.toSet());
 
-            FilterByColumnType(left, allFollowedByValues);
-            FilterByColumnType(right, allFollowsValues);
+            filterByColumnType(left, allFollowedByValues);
+            filterByColumnType(right, allFollowsValues);
 
             Map<Integer, Integer> filtered = allFollows.entrySet().stream()
                     .filter(entry -> {
@@ -743,7 +791,7 @@ public class QueryEvaluator {
                 result = result.stream()
                         .filter(v -> {
                             try {
-                                return pkb.getStmtType(Integer.parseInt(v)) == filter;
+                                return pkb.getEntityType(Integer.parseInt(v)) == filter;
                             } catch (Exception e) {
                                 return false;
                             }
@@ -996,7 +1044,7 @@ public class QueryEvaluator {
                 candidates = pkb.getAssignsWithLhs(lhsVar);
             } else {
                 candidates = pkb.getAllStmts().stream()
-                        .filter(s -> pkb.getStmtType(s) == EntityType.ASSIGN)
+                        .filter(s -> pkb.getEntityType(s) == EntityType.ASSIGN)
                         .collect(Collectors.toSet());
             }
 
@@ -1028,7 +1076,7 @@ public class QueryEvaluator {
         if (synType == SynonymType.WHILE) {
 
             Set<Integer> allWhiles = pkb.getAllStmts().stream()
-                    .filter(s -> pkb.getStmtType(s) == EntityType.WHILE)
+                    .filter(s -> pkb.getEntityType(s) == EntityType.WHILE)
                     .collect(Collectors.toSet());
 
             Set<Integer> matched;
@@ -1061,7 +1109,7 @@ public class QueryEvaluator {
             Set<String> matched = new HashSet<>();
 
             for (int s : pkb.getAllStmts()) {
-                if (pkb.getStmtType(s) != EntityType.IF) continue;
+                if (pkb.getEntityType(s) != EntityType.IF) continue;
                 Set<String> ctrl = pkb.getIfControlVars(s);
 
                 if (any) {
@@ -1108,7 +1156,7 @@ public class QueryEvaluator {
         Set<String> matches = new HashSet<>();
 
         for (int ifStmt : pkb.getAllStmts()) {
-            if (pkb.getStmtType(ifStmt) != EntityType.IF) continue;
+            if (pkb.getEntityType(ifStmt) != EntityType.IF) continue;
             Set<String> ctrl = pkb.getIfControlVars(ifStmt);
 
             if (any) {

@@ -22,7 +22,7 @@ public class PKB {
     private final Map<Integer, Set<String>> usesStmt = new HashMap<>();
     private final Map<String, Set<String>> usesProc = new HashMap<>();
 
-    private final Map<Integer, EntityType> stmtTypeMap = new HashMap<>();
+    private final Map<Integer, EntityType> entitiyTypeMap = new HashMap<>();
     private final Set<String> procedures = new HashSet<>();
     private final Set<String> variables = new HashSet<>();
 
@@ -85,8 +85,8 @@ public Set<String> getAllConstants() { return new HashSet<>(constants); }
         return callStmtToProc.get(stmt);
     }
 
-    public EntityType getStmtType(int stmt) {
-        return stmtTypeMap.get(stmt);
+    public EntityType getEntityType(int stmt) {
+        return entitiyTypeMap.get(stmt);
     }
 
     public void setParent(int parent, int child) {
@@ -96,6 +96,10 @@ public Set<String> getAllConstants() { return new HashSet<>(constants); }
 
     public int getParent(int child) {
         return parentMap.getOrDefault(child, -1);
+    }
+
+    public Map<Integer, Integer> getParentMap() {
+        return parentMap;
     }
 
     public Set<Integer> getParentStar(int child) {
@@ -249,7 +253,7 @@ public Set<String> getAllConstants() { return new HashSet<>(constants); }
     }
 
     public void addStmt(int stmtNumber, EntityType type) {
-        stmtTypeMap.put(stmtNumber, type);
+        entitiyTypeMap.put(stmtNumber, type);
     }
 
     public void addProcedure(String procName) {
@@ -382,7 +386,7 @@ public void printState() {
     }
 
     public Set<Integer> getAllStmts() {
-        return stmtTypeMap.keySet();
+        return entitiyTypeMap.keySet();
     }
 
     public Set<String> getAllProcedures() {
