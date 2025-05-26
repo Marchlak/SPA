@@ -646,16 +646,20 @@ public class QueryEvaluator {
                 : null;
 
         if (synonymsContain(left) && rightLit != null) {
-            for (int stmt : pkb.getAllStmts()) {
-                if (pkb.getModifiedByStmt(stmt).stream()
-                        .anyMatch(v -> v.equalsIgnoreCase(rightLit))) {
-                    ensureKey(partial, left).get(left).add(String.valueOf(stmt));
+            if(!isProcSyn(left)) {
+                for (int stmt : pkb.getAllStmts()) {
+                    if (pkb.getModifiedByStmt(stmt).stream()
+                            .anyMatch(v -> v.equalsIgnoreCase(rightLit))) {
+                        ensureKey(partial, left).get(left).add(String.valueOf(stmt));
+                    }
                 }
             }
-            for (String proc : pkb.getAllProcedures()) {
-                if (pkb.getModifiedByProc(proc).stream()
-                        .anyMatch(v -> v.equalsIgnoreCase(rightLit))) {
-                    ensureKey(partial, left).get(left).add(proc);
+            else {
+                for (String proc : pkb.getAllProcedures()) {
+                    if (pkb.getModifiedByProc(proc).stream()
+                            .anyMatch(v -> v.equalsIgnoreCase(rightLit))) {
+                        ensureKey(partial, left).get(left).add(proc);
+                    }
                 }
             }
             return;
