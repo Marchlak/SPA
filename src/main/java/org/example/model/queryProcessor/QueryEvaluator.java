@@ -130,6 +130,12 @@ public class QueryEvaluator {
                     EntityType.WHILE,
                     EntityType.CALL,
                     EntityType.ASSIGN);
+            case VARIABLE -> Set.of(EntityType.VARIABLE);
+            case PROCEDURE -> Set.of(EntityType.PROCEDURE);
+            case PROG_LINE -> Set.of(EntityType.IF,
+                    EntityType.WHILE,
+                    EntityType.CALL,
+                    EntityType.ASSIGN);
             default -> null;
         };
     }
