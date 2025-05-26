@@ -394,11 +394,17 @@ public void printState() {
         return entitiyTypeMap.keySet();
     }
 
-    public Set<Integer> getStmtsByType(EntityType type) {
-        return entitiyTypeMap.entrySet().stream()
-                .filter(e -> e.getValue() == type)
-                .map(Map.Entry::getKey)
-                .collect(Collectors.toSet());
+    public Set<String> getStmtsByType(EntityType type) {
+        switch (type) {
+            case VARIABLE:
+                return assignLhsToStmts.keySet();
+            default:
+                return entitiyTypeMap.entrySet().stream()
+                        .filter(e -> e.getValue() == type)
+                        .map(Map.Entry::getKey)
+                        .map(String::valueOf)
+                        .collect(Collectors.toSet());
+        }
     }
 
     public Set<String> getAllProcedures() {

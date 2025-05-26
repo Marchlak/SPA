@@ -251,8 +251,7 @@ public class QueryEvaluator {
             Set<EntityType> allowedEntities = mapSynonimToEntities(s.type());
             globalSynonimsResult.put(s.name(), new HashSet<>());
             for (EntityType e : allowedEntities) {
-                Set<Integer> stmts = pkb.getStmtsByType(e);
-                Set<String> strStmts = stmts.stream().map(String::valueOf).collect(Collectors.toSet());
+                Set<String> strStmts = pkb.getStmtsByType(e);
                 for (String stmt : strStmts) {
                     globalSynonimsResult.get(s.name()).add(stmt);
                 }
