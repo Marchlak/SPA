@@ -37,3 +37,36 @@ Rectangle, Triangle
 procedure p;
 Select p such that Calls* ("Circle", p) and Modifies (p, "c")
 Rectangle, Triangle
+variable v;
+Select v such that Uses(10, v) and Modifies(11, v)
+d
+stmt s;
+Select s such that Follows(9, s) and Parent(s,12)
+10
+if ifstat, stmt s;
+Select ifstat such that Follows(ifstat, 17) and Uses(ifstat,"t")
+8
+assign a;
+Select a such that Uses(a, "a") and Modifies(a, "d")
+3
+procedure p;
+Select p such that Calls(p, "Hexagon") and Modifies(p, "a")
+Circle
+stmt s;
+Select s such that Follows(9, s) and Parent(s,12) and Parent(1,s)
+none
+procedure p;
+Select p such that Uses(p, "t") and Calls(p, "Triangle") and Modifies(p, "d")
+Circle
+stmt s;
+Select s such that Uses(s, "k") and Modifies(s, "a") and Follows*(9, s)
+none
+stmt s;
+Select s such that Uses(s, "k") and Modifies(s, "a") and Parent* (24, s)
+26
+stmt s;
+Select s such that Follows(3, s) and Parent(8, s) with s.stmt# = 9
+9
+assign a; variable v;
+Select a such that Uses(a, v) and Modifies(a, v) with v.varName = "d"
+11

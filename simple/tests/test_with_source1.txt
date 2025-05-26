@@ -34,3 +34,48 @@ Select s such that Follows* (s, s1) with s1.stmt# = 3
 stmt s, s1;
 Select s such that Follows* (s, s1) with s1.stmt# = 8
 1, 2, 3, 4, 5, 6, 7
+stmt s, s1;
+Select s such that Parent(s, s1) with s1.stmt# = 9
+8
+stmt s, s1;
+Select s such that Parent(s, s1) with s1.stmt# = 25
+24
+while w; stmt s;
+Select w such that Parent(w, s) with s.stmt# = 12
+10
+stmt s, s1;
+Select s such that Follows(s, s1) with s1.stmt# = 5
+4
+assign a; stmt s;
+Select a such that Follows(a, s) with s.stmt# = 4
+3
+call c; stmt s;
+Select c such that Follows*(c, s) with s.stmt# = 16
+15
+assign a; variable v;
+Select a such that Modifies(a, v) with a.stmt# = 3
+3
+stmt s; variable v;
+Select v such that Modifies(s, v) with s.stmt# = 14
+a
+while w; variable v;
+Select v such that Modifies(w, v) with w.stmt# = 10
+d, c
+stmt s; variable v;
+Select v such that Uses(s, v) with s.stmt# = 19
+a, c, d
+stmt s, s1;
+Select s such that Parent(s, s1) with s1.stmt# = 1
+none
+prog_line n; stmt s;
+Select n such that Follows(n, s) with s.stmt# = 2
+1
+assign a; variable v;
+Select a such that Modifies(a, v) with v.varName = "t"
+1, 19, 28
+prog_line n; variable v;
+Select n such that Modifies(n, v) with v.varName = "t"
+1, 6, 11, 14, 15, 19, 25, 28
+constant c;
+Select c
+d

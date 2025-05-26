@@ -33,7 +33,7 @@ Select a such that Uses(a, "c")
 16, 19, 21
 procedure p;
 Select p such that Uses(p, "t")
-Circle, Rectangle, Triangle
+Circle, Hexagon, Rectangle, Triangle
 procedure p;
 Select p such that Uses(p, "k")
 Circle, Triangle

@@ -75,10 +75,10 @@ Select w such that Parent(s, w)
 10
 stmt s; while w;
 Select s such that Parent(s, w)
-10, 18, 23, 24, 8
+8
 stmt s; assign a;
 Select s such that Parent(s, a)
-10, 18, 23, 24, 8
+10, 18, 24, 8
 stmt s; assign a;
 Select a such that Parent(s, a)
 11, 12, 13, 14, 16, 19, 21, 25, 26, 9
@@ -102,7 +102,7 @@ Select w such that Parent(w, a)
 10,18
 while w; call c;
 Select w such that Parent(w, c)
-10,18,23
+18
 prog_line n;
 Select n such that Parent(n, 10)
 8
