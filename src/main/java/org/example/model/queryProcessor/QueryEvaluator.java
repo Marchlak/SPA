@@ -39,11 +39,71 @@ public class QueryEvaluator {
         Map<String, Set<String>> solutions =
                 processQuery(processed, rawTail, synonyms);
 
-        String resultString = buildResult(rawTail, solutions);
+        //String resultString = buildResult(rawTail, solutions);
+
+        String selectRaw = rawTail.split("(?i)\\bSELECT\\b")[1]
+                .split("(?i)\\bSUCH\\s+THAT\\b|(?i)\\bWITH\\b|(?i)\\bPATTERN\\b")[0]
+                .trim();
+        Set<String> selectSynonims = new HashSet<>();
+        selectSynonims.add(selectRaw);
+        selectSynonims = selectSynonims.stream().map(String::toUpperCase).collect(Collectors.toSet());
+
+        String resultString = buildResultNew(selectSynonims, solutions, false);
 
         return resultString;
     }
 
+    private String buildResultNew(Set<String> tupleSynonimSymbols, Map<String, Set<String>> solutions, boolean isTuple) {
+        List<String> allColumns = new ArrayList<>(solutions.keySet());
+        List<List<String>> cartesian = buildCartesian(solutions);
+        if (cartesian == null || cartesian.isEmpty()) {
+            return "none";
+        }
+
+        List<Integer> selectedIndices = allColumns.stream()
+                .filter(tupleSynonimSymbols::contains)
+                .map(allColumns::indexOf)
+                .toList();
+
+        Set<String> uniqueRows = new LinkedHashSet<>();
+        for (List<String> row : cartesian) {
+            List<String> filteredRow = new ArrayList<>();
+            for (int index : selectedIndices) {
+                filteredRow.add(row.get(index));
+            }
+            uniqueRows.add(String.join(" ", filteredRow));
+        }
+
+        if (!isTuple) {
+            return String.join(", ", uniqueRows);
+        }
+
+        return String.join("\n", uniqueRows);
+    }
+
+    private List<List<String>> buildCartesian(Map<String, Set<String>> solutions) {
+        List<String> keys = new ArrayList<>(solutions.keySet());
+        List<List<String>> cartesian = new ArrayList<>();
+        cartesian.add(new ArrayList<>());
+
+        for (String key : keys) {
+            Set<String> values = solutions.get(key);
+            if (values == null || values.isEmpty()) {
+                return null;
+            }
+
+            List<List<String>> newCartesian = new ArrayList<>();
+            for (List<String> row : cartesian) {
+                for (String value : values) {
+                    List<String> newRow = new ArrayList<>(row);
+                    newRow.add(value);
+                    newCartesian.add(newRow);
+                }
+            }
+            cartesian = newCartesian;
+        }
+        return cartesian;
+    }
 
     private String buildResult(String queryTail,
                                Map<String, Set<String>> sol) {
