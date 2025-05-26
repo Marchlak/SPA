@@ -160,3 +160,7 @@ Select ifstat such that Follows(a, ifstat)
 if ifstat; stmt s;
 Select s such that Follows(ifstat, s)
 17
+prog_line n;
+Select n such that Follows (n, 8)
+7
+

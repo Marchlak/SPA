@@ -100,3 +100,6 @@ Select ifstat such that Parent* (w, ifstat)
 while w; if ifstat;
 Select ifstat such that Parent* (w, 11)
 8,24
+prog_line n;
+Select n such that Parent* (n, 11)
+10, 8
