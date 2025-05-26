@@ -556,7 +556,7 @@ public class QueryEvaluator {
             for (Map.Entry<String, Set<String>> entry : relations.entrySet()) {
                 Set<String> modifiableValues = new HashSet<>(entry.getValue());
 
-                modifiableValues.removeIf(k -> k.equals(right));
+                modifiableValues.removeIf(k -> !k.equals(right));
                 entry.setValue(modifiableValues);
             }
         }
