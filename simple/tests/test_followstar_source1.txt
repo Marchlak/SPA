@@ -64,3 +64,12 @@ Select a such that Follows* (a, 17)
 assign a;
 Select a such that Follows* (a, 28)
 none
+stmt s;
+Select s such that Follows* (s,5)
+1,2,3,4
+stmt s;
+Select s such that Follows*(s, 13)
+9, 10
+call c;
+Select c such that Follows*(c, 7)
+4,6

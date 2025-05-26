@@ -150,13 +150,13 @@ Select s such that Follows(s, w)
 9
 stmt s; while w;
 Select s such that Follows(w, s)
-none
+13,22,27
 assign a; while w;
 Select a such that Follows(a, w)
 9
 assign a; if ifstat;
 Select ifstat such that Follows(a, ifstat)
 8
-if ifs; stmt s;
-Select s such that Follows(ifs, s)
-5
+if ifstat; stmt s;
+Select s such that Follows(ifstat, s)
+17
