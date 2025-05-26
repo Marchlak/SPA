@@ -151,8 +151,16 @@ public Set<String> getAllConstants() { return new HashSet<>(constants); }
         followedByStarCache.clear();
     }
 
+    public Map<Integer, Integer> getAllFollows() {
+        return followsMap;
+    }
+
     public Integer getFollows(int stmt) {
         return followsMap.get(stmt);
+    }
+
+    public Map<Integer, Integer> getAllFollowedBy() {
+        return followedByMap;
     }
 
     public Integer getFollowedBy(int stmt) {

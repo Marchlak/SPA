@@ -77,33 +77,7 @@ public class QueryEvaluator {
             if (values.isEmpty()) return "none";
 
             /* ----- filtr po typie (ASSIGN, WHILE, IF, CALL) -------------- */
-            SynonymType type = synonyms.stream()
-                    .filter(s -> s.name().equalsIgnoreCase(col))
-                    .map(Synonym::type)
-                    .findFirst()
-                    .orElse(null);
-
-            if (type != null) {
-                EntityType stmtFilter = switch (type) {
-                    case ASSIGN -> EntityType.ASSIGN;
-                    case WHILE -> EntityType.WHILE;
-                    case IF -> EntityType.IF;
-                    case CALL -> EntityType.CALL;
-                    default -> null;
-                };
-
-                if (stmtFilter != null) {
-                    values = values.stream()
-                            .filter(v -> {
-                                try {
-                                    return pkb.getStmtType(Integer.parseInt(v)) == stmtFilter;
-                                } catch (NumberFormatException e) {     // nie-liczba
-                                    return false;
-                                }
-                            })
-                            .collect(Collectors.toSet());
-                }
-            }
+            FilterByColumnType(col, values);
 
             if (values.isEmpty()) return "none";
 
@@ -122,6 +96,34 @@ public class QueryEvaluator {
 
         /* ---------- 5. sklejamy kolumny --------------------------------- */
         return String.join(" | ", pieces);
+    }
+
+    private void FilterByColumnType(String columnName, Set<String> values) {
+        SynonymType type = synonyms.stream()
+                .filter(s -> s.name().equalsIgnoreCase(columnName))
+                .map(Synonym::type)
+                .findFirst()
+                .orElse(null);
+
+        if (type != null) {
+            EntityType stmtFilter = switch (type) {
+                case ASSIGN -> EntityType.ASSIGN;
+                case WHILE -> EntityType.WHILE;
+                case IF -> EntityType.IF;
+                case CALL -> EntityType.CALL;
+                default -> null;
+            };
+
+            if (stmtFilter != null) {
+                values.removeIf(v -> {
+                    try {
+                        return pkb.getStmtType(Integer.parseInt(v)) != stmtFilter;
+                    } catch (NumberFormatException e) {
+                        return true;
+                    }
+                });
+            }
+        }
     }
 
 
@@ -521,8 +523,40 @@ public class QueryEvaluator {
             handleFollowedBy(Integer.parseInt(right), left, partialSolutions);
         }
 
-        if (isNumeric(left) && synonymsContain(right)) {
+        else if (isNumeric(left) && synonymsContain(right)) {
             handleFollowsOf(Integer.parseInt(left), right, partialSolutions);
+        }
+
+        else if (synonymsContain(left) && synonymsContain(right)) {
+            Map<Integer, Integer> allFollows = pkb.getAllFollows();
+            Map<Integer, Integer> allFollowedBy = pkb.getAllFollowedBy();
+
+            Set<String> allFollowedByValues = allFollows.keySet().stream()
+                    .map(String::valueOf)
+                    .collect(Collectors.toSet());
+
+            Set<String> allFollowsValues = allFollows.values().stream()
+                    .map(String::valueOf)
+                    .collect(Collectors.toSet());
+
+            FilterByColumnType(left, allFollowedByValues);
+            FilterByColumnType(right, allFollowsValues);
+
+            Map<Integer, Integer> filtered = allFollows.entrySet().stream()
+                    .filter(entry -> {
+                        String keyStr = String.valueOf(entry.getKey());
+                        String valStr = String.valueOf(entry.getValue());
+                        return allFollowedByValues.contains(keyStr) && allFollowsValues.contains(valStr);
+                    })
+                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
+            Set<String> leftSet = partialSolutions.computeIfAbsent(left, k -> new HashSet<>());
+            Set<String> rightSet = partialSolutions.computeIfAbsent(right, k -> new HashSet<>());
+
+            filtered.forEach((k, v) -> {
+                leftSet.add(String.valueOf(k));
+                rightSet.add(String.valueOf(v));
+            });
         }
     }
 
