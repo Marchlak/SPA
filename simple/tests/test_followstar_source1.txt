@@ -64,3 +64,36 @@ Select a such that Follows* (a, 17)
 assign a;
 Select a such that Follows* (a, 28)
 none
+stmt s;
+Select s such that Follows* (s,5)
+1,2,3,4
+stmt s;
+Select s such that Follows*(s, 13)
+9, 10
+call c;
+Select c such that Follows*(c, 7)
+4,6
+stmt s;
+Select s such that Follows* (5, s)
+17, 6, 7, 8
+stmt s;
+Select s such that Follows* (s, 5)
+1, 2, 3, 4
+assign a;
+Select a such that Follows* (a, 12)
+11
+while w;
+Select w such that Follows* (w, 21)
+18
+while w;
+Select w such that Follows* (w, 12)
+10
+if ifstat; stmt s;
+Select ifstat such that Follows* (ifstat, s)
+8,24
+while w; assign a;
+Select w such that Follows* (w, a)
+10,18,23
+while w; call c;
+Select w such that Follows* (w, c)
+10,18

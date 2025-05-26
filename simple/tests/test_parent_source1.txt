@@ -100,3 +100,12 @@ Select a such that Parent(w, a)
 while w; assign a;
 Select w such that Parent(w, a)
 10,18
+while w; call c;
+Select w such that Parent(w, c)
+10,18,23
+prog_line n;
+Select n such that Parent(n, 10)
+8
+while w; prog_line n;
+Select w such that Parent(n, w)
+10

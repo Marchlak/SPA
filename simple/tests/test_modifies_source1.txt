@@ -34,3 +34,60 @@ a, d
 while w;
 Select w such that Modifies (w, "d")
 10, 18, 23
+assign a; variable v;
+Select v such that Modifies(1, v)
+t
+assign a; variable v;
+Select v such that Modifies(2, v)
+a
+assign a; variable v;
+Select v such that Modifies(3, v)
+d
+assign a; variable v;
+Select v such that Modifies(5, v)
+b
+assign a; variable v;
+Select v such that Modifies(7, v)
+b
+assign a; variable v;
+Select v such that Modifies(9, v)
+k
+call c; variable v;
+Select v such that Modifies(4, v)
+a, c, d
+call c; variable v;
+Select v such that Modifies(6, v)
+t
+call c; variable v;
+Select v such that Modifies(20, v)
+a, c, d
+while w; variable v;
+Select v such that Modifies(10, v)
+d, c
+while w; variable v;
+Select v such that Modifies(23, v)
+a, d
+procedure p; variable v;
+Select v such that Modifies("Circle", v)
+a, b, c, d, k, t
+procedure p; variable v;
+Select v such that Modifies("Triangle", v)
+a, c, d
+if ifstat;
+Select ifstat such that Modifies(ifstat, "d")
+8,24
+assign a; variable v;
+Select v such that Modifies(a, v)
+a, b, c, d, k, t
+call c; variable v;
+Select c such that Modifies(c, v)
+15, 17, 20, 4, 6
+procedure p; prog_line n;
+Select p such that Modifies(n, "t")
+Circle, Hexagon, Rectangle, Triangle
+prog_line n;
+Select n such that Modifies(n, "a")
+4, 20
+while w; prog_line n;
+Select w such that Modifies(n,"a")
+10,18,23

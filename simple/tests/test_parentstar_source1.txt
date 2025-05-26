@@ -40,3 +40,66 @@ none
 while w;
 Select w such that Parent* (w, 21)
 18
+stmt s;
+Select s such that Parent* (s, 25)
+24, 23
+stmt s;
+Select s such that Parent* (s, 13)
+8
+stmt s;
+Select s such that Parent* (s, 21)
+18
+stmt s;
+Select s such that Parent* (10, s)
+11, 12
+stmt s;
+Select s such that Parent* (8, s)
+9, 10, 11, 12, 13, 14, 15, 16
+stmt s;
+Select s such that Parent* (24, s)
+25, 26
+assign a;
+Select a such that Parent* (10, a)
+11, 12
+assign a;
+Select a such that Parent* (8, a)
+11, 12, 13, 14, 16, 9
+while w;
+Select w such that Parent* (w, 11)
+10
+while w;
+Select w such that Parent* (w, 19)
+18
+while w;
+Select w such that Parent* (8, w)
+10
+while w;
+Select w such that Parent* (10, w)
+none
+if ifstat;
+Select ifstat such that Parent* (ifstat, 15)
+8
+if ifstat;
+Select ifstat such that Parent* (9, ifstat)
+none
+if ifstat;
+Select ifstat such that Parent* (23, ifstat)
+24
+if ifstat; stmt s;
+Select ifstat such that Parent* (ifstat, s)
+8,24
+if ifstat; stmt s;
+Select s such that Parent* (ifstat, s)
+9, 10, 11, 12, 13, 14, 15, 16, 25, 26
+if ifstat; while w;
+Select w such that Parent* (ifstat, w)
+10, 18, 23
+while w; if ifstat;
+Select ifstat such that Parent* (w, ifstat)
+24
+while w; if ifstat;
+Select ifstat such that Parent* (w, 11)
+8,24
+prog_line n;
+Select n such that Parent* (n, 11)
+10, 8
