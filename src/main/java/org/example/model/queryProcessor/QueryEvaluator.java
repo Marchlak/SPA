@@ -37,7 +37,7 @@ public class QueryEvaluator {
         processed = transformQueryToApplyWith(processed);
 
         Map<String, Set<String>> solutions =
-                processQuery(processed, rawTail);
+                processQuery(processed, rawTail, synonyms);
 
         String resultString = buildResult(rawTail, solutions);
 
@@ -106,17 +106,7 @@ public class QueryEvaluator {
                 .orElse(null);
 
         if (type != null) {
-            Set<EntityType> allowedEntities = switch (type) {
-                case ASSIGN -> Set.of(EntityType.ASSIGN);
-                case WHILE -> Set.of(EntityType.WHILE);
-                case IF -> Set.of(EntityType.IF);
-                case CALL -> Set.of(EntityType.CALL);
-                case STMT -> Set.of(EntityType.IF,
-                        EntityType.WHILE,
-                        EntityType.CALL,
-                        EntityType.ASSIGN);
-                default -> null;
-            };
+            Set<EntityType> allowedEntities = mapSynonimToEntities(type);
 
             if (allowedEntities != null) {
                 values.removeIf(v -> {
@@ -128,6 +118,20 @@ public class QueryEvaluator {
                 });
             }
         }
+    }
+
+    private Set<EntityType> mapSynonimToEntities(SynonymType synonymType) {
+        return switch (synonymType) {
+            case ASSIGN -> Set.of(EntityType.ASSIGN);
+            case WHILE -> Set.of(EntityType.WHILE);
+            case IF -> Set.of(EntityType.IF);
+            case CALL -> Set.of(EntityType.CALL);
+            case STMT -> Set.of(EntityType.IF,
+                    EntityType.WHILE,
+                    EntityType.CALL,
+                    EntityType.ASSIGN);
+            default -> null;
+        };
     }
 
 
@@ -234,26 +238,35 @@ public class QueryEvaluator {
         return "";
     }
 
-    private Map<String, Set<String>> processQuery(String processed, String raw) {
+    private Map<String, Set<String>> processQuery(String processed, String raw, Set<Synonym> synonims) {
         List<Relationship> relationships = extractRelationships(processed);
-        Map<String, Set<String>> partial = initSynonymMap();
-        boolean first = true;
-
-        for (Relationship r : relationships) {
-            Map<String, Set<String>> local = initSynonymMap();
-            applyRelationship(r, local);
-            for (Map.Entry<String, Set<String>> e : local.entrySet()) {
-                Set<String> tgt = ensureKey(partial, e.getKey()).get(e.getKey());
-                if (first) tgt.addAll(e.getValue());
-                else tgt.retainAll(e.getValue());
+        Map<String, Set<String>> globalSynonimsResult = new HashMap<>();
+        for (Synonym s : synonims) {
+            Set<EntityType> allowedEntities = mapSynonimToEntities(s.type());
+            globalSynonimsResult.put(s.name(), new HashSet<>());
+            for (EntityType e : allowedEntities) {
+                Set<Integer> stmts = pkb.getStmtsByType(e);
+                Set<String> strStmts = stmts.stream().map(String::valueOf).collect(Collectors.toSet());
+                for (String stmt : strStmts) {
+                    globalSynonimsResult.get(s.name()).add(stmt);
+                }
             }
-            first = false;
         }
 
-        handlePatterns(raw, partial);
-        applyWithConstraints(raw, partial);
-        ensureAllSynonyms(partial);
-        return partial;
+        for (Relationship relation : relationships) {
+            Map<String, Set<String>> relationSynonimsResult = new HashMap<>();
+            applyRelationship(relation, relationSynonimsResult);
+            for (Map.Entry<String, Set<String>> synonim : relationSynonimsResult.entrySet()) {
+                Set<String> synonimValues = synonim.getValue();
+                Set<String> globalSynonimValues = globalSynonimsResult.get(synonim.getKey());
+                globalSynonimValues.retainAll(synonimValues);
+            }
+        }
+
+        handlePatterns(raw, globalSynonimsResult);
+        applyWithConstraints(raw, globalSynonimsResult);
+        ensureAllSynonyms(globalSynonimsResult);
+        return globalSynonimsResult;
     }
 
     private void applyRelationship(Relationship r, Map<String, Set<String>> partial) {
@@ -362,11 +375,6 @@ public class QueryEvaluator {
         }
     }
 
-    private Map<String, Set<String>> initSynonymMap() {
-        return new HashMap<>();
-    }
-
-
     private Map<String, Set<String>> ensureKey(Map<String, Set<String>> map, String key) {
         map.computeIfAbsent(key, k -> new HashSet<>());
         return map;
@@ -396,29 +404,6 @@ public class QueryEvaluator {
         }
     }
 
-    private void handleParentStar(String left, String right, Map<String, Set<String>> partialSolutions) {
-
-        if (isNumeric(right) && synonymsContain(left)) {
-            int c = Integer.parseInt(right);
-            Set<Integer> parents = pkb.getParentStar(c);
-            if (parents.isEmpty()) {
-                ensureKey(partialSolutions, left).get(left).add("none");
-            } else {
-                for (int p : parents)
-                    ensureKey(partialSolutions, left).get(left).add(String.valueOf(p));
-            }
-        }
-        if (isNumeric(left) && synonymsContain(right)) {
-            int p = Integer.parseInt(left);
-            Set<Integer> descendants = pkb.getParentedStarBy(p);
-            if (descendants.isEmpty()) {
-                ensureKey(partialSolutions, right).get(right).add("none");
-            } else {
-                for (int d : descendants)
-                    ensureKey(partialSolutions, right).get(right).add(String.valueOf(d));
-            }
-        }
-    }
 
     private void handleFollowsStar(String left, String right, Map<String, Set<String>> partial) {
         if (isNumeric(right) && synonymsContain(left)) {
@@ -505,6 +490,31 @@ public class QueryEvaluator {
         partialSolutions.putAll(handleRelation(left, right, relations));
     }
 
+    private void handleParentStar(String left, String right, Map<String, Set<String>> partialSolutions) {
+        //Get all with that relations
+        Map<Integer, Integer> parentReversed = pkb.getParentMap();
+
+        //Reversing map - in pkb is <child, parent>
+        Map<Integer, Set<Integer>> relationsNotTyped = new HashMap<>();
+        for (Map.Entry<Integer, Integer> entry : parentReversed.entrySet()) {
+            Integer child = entry.getKey();
+            Integer parent = entry.getValue();
+
+            relationsNotTyped
+                    .computeIfAbsent(parent, k -> new HashSet<>())
+                    .add(child);
+        }
+
+        //Replacing map to string substitute
+        Map<String, Set<String>> relations = substituteRelationFrom(relationsNotTyped);
+
+        //Star algorithm
+        relations = generateTransitive(relations);
+
+        partialSolutions.clear();
+        partialSolutions.putAll(handleRelation(left, right, relations));
+    }
+
     private Map<String, Set<String>> substituteRelationFrom(Map<Integer, Set<Integer>> relations) {
         return relations.entrySet().stream()
                 .collect(Collectors.toMap(
@@ -513,6 +523,43 @@ public class QueryEvaluator {
                                 .map(String::valueOf)
                                 .collect(Collectors.toSet())
                 ));
+    }
+
+    private Map<String, Set<String>> generateTransitive(Map<String, Set<String>> relations) {
+        Map<String, Set<String>> result = new HashMap<>();
+        for (Map.Entry<String, Set<String>> entry : relations.entrySet()) {
+            result.put(entry.getKey(), new HashSet<>(entry.getValue()));
+        }
+
+        boolean changed;
+
+        do {
+            changed = false;
+
+            // Dla każdego węzła A
+            for (String a : new HashSet<>(result.keySet())) {
+                Set<String> directChildren = result.get(a);
+                Set<String> toAdd = new HashSet<>();
+
+                // Sprawdź każde B, do którego A ma połączenie
+                for (String b : directChildren) {
+                    Set<String> bChildren = result.get(b);
+                    if (bChildren != null) {
+                        for (String c : bChildren) {
+                            if (!directChildren.contains(c)) {
+                                toAdd.add(c);
+                                changed = true;
+                            }
+                        }
+                    }
+                }
+
+                directChildren.addAll(toAdd);
+            }
+
+        } while (changed);
+
+        return result;
     }
 
     /**
@@ -525,11 +572,6 @@ public class QueryEvaluator {
      */
     private Map<String, Set<String>> handleRelation(String left, String right, Map<String, Set<String>> relations) {
         Map<String, Set<String>> partialSolutions = new HashMap<>();
-
-        //Init partial solutions with synonims
-        //So when nothing is matched then no relation pairs were found not like relation check not existed
-        ensureKey(partialSolutions, left);
-        ensureKey(partialSolutions, right);
 
         //When left is synonim filter relations keys by their type
         if (synonymsContain(left)) {
@@ -561,8 +603,10 @@ public class QueryEvaluator {
             }
         }
         relations.entrySet().removeIf(entry -> entry.getValue().isEmpty());
-        partialSolutions.put(left, relations.keySet());
-        partialSolutions.put(right, relations.values().stream().flatMap(Collection::stream).collect(Collectors.toSet()));
+        if (synonymsContain(left))
+            partialSolutions.put(left, relations.keySet());
+        if (synonymsContain(right))
+            partialSolutions.put(right, relations.values().stream().flatMap(Collection::stream).collect(Collectors.toSet()));
         return partialSolutions;
     }
 

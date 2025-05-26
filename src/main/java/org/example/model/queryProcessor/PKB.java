@@ -4,6 +4,7 @@ import org.example.model.ast.TNode;
 import org.example.model.enums.EntityType;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class PKB {
     private final Map<Integer, Integer> parentMap = new HashMap<>();
@@ -113,6 +114,10 @@ public Set<String> getAllConstants() { return new HashSet<>(constants); }
             parentStarCache.put(child, ancestors);
         }
         return parentStarCache.get(child);
+    }
+
+    public Map<Integer, Set<Integer>> getParentStarMap() {
+        return parentStarCache;
     }
 
     public Set<Integer> getParentedBy(int parent) {
@@ -387,6 +392,13 @@ public void printState() {
 
     public Set<Integer> getAllStmts() {
         return entitiyTypeMap.keySet();
+    }
+
+    public Set<Integer> getStmtsByType(EntityType type) {
+        return entitiyTypeMap.entrySet().stream()
+                .filter(e -> e.getValue() == type)
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toSet());
     }
 
     public Set<String> getAllProcedures() {
