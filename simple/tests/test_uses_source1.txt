@@ -16,3 +16,42 @@ a, b, d, k, t
 assign a; variable v;
 Select v such that Uses (a, v)
 a, b, c, d, k, t
+while w;
+Select w such that Uses(w, "d")
+10, 18, 23
+if i;
+Select i such that Uses(i, "d")
+8, 24
+call c;
+Select c such that Uses(c, "c")
+17
+call c;
+Select c such that Uses(c, "a")
+15, 17, 20, 4, 6
+assign a;
+Select a such that Uses(a, "c")
+16, 19, 21
+procedure p;
+Select p such that Uses(p, "t")
+Circle, Rectangle, Triangle
+procedure p;
+Select p such that Uses(p, "k")
+Circle, Triangle
+procedure p;
+Select p such that Uses(p, "x")
+none
+assign a;
+Select a such that Uses(a, "a")
+19, 26, 28, 3, 5, 7, 9
+while w; variable v;
+Select v such that Uses(w, v)
+a, b, c, d, k, t
+prog_line n;
+Select n such that Uses(n,"t")
+10, 11, 13, 14, 15, 17, 18, 2, 20, 22, 23, 24, 25, 26, 27, 28, 3, 4, 5, 6, 7, 8
+if ifstat;
+Select ifstat such that Uses(ifstat,"t")
+24,8
+if ifstat;
+Select ifstat such that Uses(ifstat,"b")
+24
