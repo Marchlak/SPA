@@ -1,0 +1,19 @@
+assign a; variable v;
+Select a such that Uses(a, "d") and Modifies(a, "d")  and Follows*(a,12) and Follows(a,12) and Uses(a,"t")
+11
+stmt s1, s2;
+Select s1 such that Follows(s1, s2) with s2.stmt# = 8 such that Parent(s1,10)
+none
+stmt s1, s2; if ifstat;
+Select s1 such that Follows(s1, s2) with s2.stmt# = 13 such that Parent(ifstat,s1) with ifstat.stmt# = 8
+10
+stmt s1, s2; if ifstat; assign a;
+Select s1 such that Follows(s1, s2) with s2.stmt# = 13 such that Parent(8,s1) such that Follows(s1, a) with a.stmt# = 13
+10
+stmt s1, s2; if ifstat; assign a;
+Select s1 such that Follows(s1, s2) with s2.stmt# = 13 such that Parent(3,s1) such that Follows(s1, a) with a.stmt# = 13
+none
+procedure p1,p2;
+Select p1 such that Calls* (p1, p2) with p2.procName ="Hexagon" such that Modifies(p1, "t")
+Circle
+

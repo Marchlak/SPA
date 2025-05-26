@@ -91,3 +91,6 @@ Select n such that Modifies(n, "a")
 while w; prog_line n;
 Select w such that Modifies(n,"a")
 10,18,23
+procedure p;
+Select p such that Modifies(p, "t")
+Circle, Hexagon, Rectangle
