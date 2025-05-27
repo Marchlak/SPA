@@ -41,8 +41,13 @@ public class QueryEvaluator {
                 .trim();
         boolean isBoolResult = selectRaw.trim().toUpperCase().startsWith("BOOLEAN");
 
-        Map<String, Set<String>> solutions =
-                processQuery(processed, rawTail, synonyms, isBoolResult);
+        Map<String, Set<String>> solutions;
+        try {
+            solutions = processQuery(processed, rawTail, synonyms, isBoolResult);
+        }
+        catch (Exception e) {
+            return "Error processing query";
+        }
 
         if (isBoolResult) {
             return solutions == null ? "false" : "true";
