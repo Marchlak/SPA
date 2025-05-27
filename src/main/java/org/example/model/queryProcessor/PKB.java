@@ -237,8 +237,16 @@ public Set<String> getAllConstants() { return new HashSet<>(constants); }
         return modifiesStmt.getOrDefault(stmt, new HashSet<>());
     }
 
+    public Map<Integer, Set<String>> getModifiedByStmtMap() {
+        return new HashMap<>(modifiesStmt);
+    }
+
     public Set<String> getModifiedByProc(String proc) {
         return modifiesProc.getOrDefault(proc, new HashSet<>());
+    }
+
+    public Map<String, Set<String>> getModifiedByProcMap() {
+        return new HashMap<>(modifiesProc);
     }
 
     public Map<Integer, Set<String>> getAllUses() {

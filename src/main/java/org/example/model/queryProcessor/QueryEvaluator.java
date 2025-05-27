@@ -47,6 +47,9 @@ public class QueryEvaluator {
         if (isBoolResult) {
             return solutions == null ? "false" : "true";
         }
+        else {
+            if (solutions == null) { return "none"; }
+        }
 
         //String resultString = buildResult(rawTail, solutions);
 
@@ -327,15 +330,17 @@ public class QueryEvaluator {
         for (Relationship relation : relationships) {
             Map<String, Set<String>> relationSynonimsResult = new HashMap<>();
             applyRelationship(relation, relationSynonimsResult);
-            if (!hasSynonimResultPairs(relationSynonimsResult) && isBoolResult) {
-                return null;
-            }
+
             for (Map.Entry<String, Set<String>> synonim : relationSynonimsResult.entrySet()) {
                 if (synonymsContain(mapArgToSynonim(synonim.getKey(), relation))) {
                     Set<String> synonimValues = synonim.getValue();
                     Set<String> globalSynonimValues = globalSynonimsResult.get(mapArgToSynonim(synonim.getKey(), relation));
                     globalSynonimValues.retainAll(synonimValues);
                 }
+            }
+
+            if (!hasSynonimResultPairs(relationSynonimsResult)) {
+                return null;
             }
         }
 
@@ -346,6 +351,7 @@ public class QueryEvaluator {
     }
 
     private boolean hasSynonimResultPairs(Map<String, Set<String>> result) {
+        if (result.isEmpty()) { return false; }
         for (Map.Entry<String, Set<String>> entry : result.entrySet()) {
             if (entry.getValue().isEmpty()) {
                 return false;
@@ -710,81 +716,20 @@ public class QueryEvaluator {
     }
 
 
-    private void handleModifies(String left,
-                                String right,
-                                Map<String, Set<String>> partial) {
+    private void handleModifies(String left, String right, Map<String, Set<String>> partialSolutions) {
+        //Get all with that relations
+        Map<Integer, Set<String>> nextMap = pkb.getModifiedByStmtMap();
 
-        boolean leftIsNum = isNumeric(left);
-        boolean rightIsNum = isNumeric(right);
-
-        boolean leftIsLit = isStringLiteral(left);
-        boolean rightIsLit = isStringLiteral(right);
-
-        boolean rightIsBareLit = !rightIsNum && !synonymsContain(right) && !rightIsLit;
-        boolean leftIsBareLit = !leftIsNum && !synonymsContain(left) && !leftIsLit;
-
-        String rightLit = rightIsLit ? right.replace("\"", "")
-                : rightIsBareLit ? right
-                : null;
-
-        String leftLit = leftIsLit ? left.replace("\"", "")
-                : leftIsBareLit ? left
-                : null;
-
-        if (synonymsContain(left) && rightLit != null) {
-            if(!isProcSyn(left)) {
-                for (int stmt : pkb.getAllStmts()) {
-                    if (pkb.getModifiedByStmt(stmt).stream()
-                            .anyMatch(v -> v.equalsIgnoreCase(rightLit))) {
-                        ensureKey(partial, left).get(left).add(String.valueOf(stmt));
-                    }
-                }
-            }
-            else {
-                for (String proc : pkb.getAllProcedures()) {
-                    if (pkb.getModifiedByProc(proc).stream()
-                            .anyMatch(v -> v.equalsIgnoreCase(rightLit))) {
-                        ensureKey(partial, left).get(left).add(proc);
-                    }
-                }
-            }
-            return;
+        //Replacing map to string substitute
+        Map<String, Set<String>> relations = new HashMap<>();
+        for (Map.Entry<Integer, Set<String>> entry : nextMap.entrySet()) {
+            String key = String.valueOf(entry.getKey());
+            relations.computeIfAbsent(key, k -> entry.getValue());
         }
+        relations.putAll(pkb.getModifiedByProcMap());
 
-        if (leftIsNum && synonymsContain(right)) {
-            ensureKey(partial, right).get(right).addAll(pkb.getModifiedByStmt(Integer.parseInt(left)));
-        }
-
-        if (leftLit != null && synonymsContain(right)) {
-            ensureKey(partial, right).get(right).addAll(pkb.getModifiedByProc(leftLit));
-        }
-
-        if (!leftIsNum && synonymsContain(left) && synonymsContain(right)) {
-            for (String proc : pkb.getAllProcedures()) {
-                for (String var : pkb.getModifiedByProc(proc)) {
-                    ensureKey(partial, left).get(left).add(proc);
-                    ensureKey(partial, right).get(right).add(var);
-                }
-            }
-        }
-
-        if (synonymsContain(left) && synonymsContain(right)) {
-            for (int stmt : pkb.getAllStmts()) {
-                for (String var : pkb.getModifiedByStmt(stmt)) {
-                    ensureKey(partial, left).get(left).add(String.valueOf(stmt));
-                    ensureKey(partial, right).get(right).add(var);
-                }
-            }
-        }
-
-        if (synonymsContain(left) && rightLit != null) {
-            for (String proc : pkb.getAllProcedures()) {
-                if (pkb.getModifiedByProc(proc).stream()
-                        .anyMatch(v -> v.equalsIgnoreCase(rightLit))) {
-                    ensureKey(partial, left).get(left).add(proc);
-                }
-            }
-        }
+        partialSolutions.clear();
+        partialSolutions.putAll(handleRelation(left, right, relations));
     }
 
     private void handleUses(String left, String right, Map<String, Set<String>> partialSolutions) {
