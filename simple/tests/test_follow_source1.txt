@@ -163,4 +163,3 @@ Select s such that Follows(ifstat, s)
 prog_line n;
 Select n such that Follows (n, 8)
 7
-
