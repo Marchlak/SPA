@@ -36,14 +36,20 @@ public class QueryEvaluator {
         String processed = toUpperCaseOutsideQuotes(rawTail);
         processed = transformQueryToApplyWith(processed);
 
-        Map<String, Set<String>> solutions =
-                processQuery(processed, rawTail, synonyms);
-
-        //String resultString = buildResult(rawTail, solutions);
-
         String selectRaw = rawTail.split("(?i)\\bSELECT\\b")[1]
                 .split("(?i)\\bSUCH\\s+THAT\\b|(?i)\\bWITH\\b|(?i)\\bPATTERN\\b")[0]
                 .trim();
+        boolean isBoolResult = selectRaw.trim().toUpperCase().startsWith("BOOLEAN");
+
+        Map<String, Set<String>> solutions =
+                processQuery(processed, rawTail, synonyms, isBoolResult);
+
+        if (isBoolResult) {
+            return solutions == null ? "false" : "true";
+        }
+
+        //String resultString = buildResult(rawTail, solutions);
+
         Set<String> selectSynonims = new HashSet<>();
         selectSynonims.add(selectRaw);
         selectSynonims = selectSynonims.stream().map(String::toUpperCase).collect(Collectors.toSet());
@@ -304,7 +310,7 @@ public class QueryEvaluator {
         return "";
     }
 
-    private Map<String, Set<String>> processQuery(String processed, String raw, Set<Synonym> synonims) {
+    private Map<String, Set<String>> processQuery(String processed, String raw, Set<Synonym> synonims, boolean isBoolResult) {
         List<Relationship> relationships = extractRelationships(processed);
         Map<String, Set<String>> globalSynonimsResult = new HashMap<>();
         for (Synonym s : synonims) {
@@ -321,10 +327,15 @@ public class QueryEvaluator {
         for (Relationship relation : relationships) {
             Map<String, Set<String>> relationSynonimsResult = new HashMap<>();
             applyRelationship(relation, relationSynonimsResult);
+            if (!hasSynonimResultPairs(relationSynonimsResult) && isBoolResult) {
+                return null;
+            }
             for (Map.Entry<String, Set<String>> synonim : relationSynonimsResult.entrySet()) {
-                Set<String> synonimValues = synonim.getValue();
-                Set<String> globalSynonimValues = globalSynonimsResult.get(synonim.getKey());
-                globalSynonimValues.retainAll(synonimValues);
+                if (synonymsContain(mapArgToSynonim(synonim.getKey(), relation))) {
+                    Set<String> synonimValues = synonim.getValue();
+                    Set<String> globalSynonimValues = globalSynonimsResult.get(mapArgToSynonim(synonim.getKey(), relation));
+                    globalSynonimValues.retainAll(synonimValues);
+                }
             }
         }
 
@@ -332,6 +343,23 @@ public class QueryEvaluator {
         applyWithConstraints(raw, globalSynonimsResult);
         ensureAllSynonyms(globalSynonimsResult);
         return globalSynonimsResult;
+    }
+
+    private boolean hasSynonimResultPairs(Map<String, Set<String>> result) {
+        for (Map.Entry<String, Set<String>> entry : result.entrySet()) {
+            if (entry.getValue().isEmpty()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private String mapArgToSynonim(String argName, Relationship relation) {
+        return switch (argName) {
+            case "arg0" -> relation.getFirstArg();
+            case "arg1" -> relation.getSecondArg();
+            default -> throw new IllegalArgumentException("Unknown argument " + argName);
+        };
     }
 
     private void applyRelationship(Relationship r, Map<String, Set<String>> partial) {
@@ -602,6 +630,7 @@ public class QueryEvaluator {
             filterByColumnType(left, keys);
             relations.keySet().removeIf(k -> !keys.contains(k));
         }
+        else if (Objects.equals(left, "_")) { }
         //When left is numeral filter relations keys - must have same number
         else {
             relations.keySet().removeIf(k -> !k.equals(left));
@@ -616,6 +645,7 @@ public class QueryEvaluator {
                 entry.setValue(modifiableValues);
             }
         }
+        else if (Objects.equals(right, "_")) { }
         //When right is numeral type values for keys must have same number
         else {
             for (Map.Entry<String, Set<String>> entry : relations.entrySet()) {
@@ -626,12 +656,12 @@ public class QueryEvaluator {
             }
         }
         relations.entrySet().removeIf(entry -> entry.getValue().isEmpty());
-        if (synonymsContain(left))
-            partialSolutions.put(left, relations.keySet());
-        if (synonymsContain(right))
-            partialSolutions.put(right, relations.values().stream().flatMap(Collection::stream).collect(Collectors.toSet()));
+        partialSolutions.put("arg0", relations.keySet());
+        partialSolutions.put("arg1", relations.values().stream().flatMap(Collection::stream).collect(Collectors.toSet()));
+
         return partialSolutions;
     }
+
 
     private void handleFollows(String left, String right, Map<String, Set<String>> partialSolutions) {
         if (isNumeric(right) && synonymsContain(left)) {
