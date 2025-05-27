@@ -469,46 +469,6 @@ public class QueryEvaluator {
         }
     }
 
-
-    private void handleFollowsStar(String left, String right, Map<String, Set<String>> partial) {
-        if (isNumeric(right) && synonymsContain(left)) {
-            Set<String> set = ensureKey(partial, left).get(left);
-            int r = Integer.parseInt(right);
-            Set<Integer> preds = pkb.getFollowedByStar(r);
-            if (preds.isEmpty()) {
-                set.add("none");
-            } else {
-                for (int p : preds) set.add(String.valueOf(p));
-            }
-        }
-
-        if (isNumeric(left) && synonymsContain(right)) {
-            Set<String> set = ensureKey(partial, right).get(right);
-            int l = Integer.parseInt(left);
-            Set<Integer> succs = pkb.getFollowsStar(l);
-            if (succs.isEmpty()) {
-                set.add("none");
-            } else {
-                for (int s : succs) set.add(String.valueOf(s));
-            }
-        }
-
-        if (synonymsContain(left) && synonymsContain(right)) {
-            Set<String> lRes = new HashSet<>();
-            Set<String> rRes = new HashSet<>();
-            for (int s : pkb.getAllStmts()) {
-                for (int t : pkb.getFollowsStar(s)) {
-                    lRes.add(String.valueOf(s));
-                    rRes.add(String.valueOf(t));
-                }
-            }
-            if (lRes.isEmpty()) lRes.add("none");
-            if (rRes.isEmpty()) rRes.add("none");
-            partial.put(left, lRes);
-            partial.put(right, rRes);
-        }
-    }
-
     private void handleCalls(String left, String right, Map<String, Set<String>> partialSolutions) {
         String caller = left.replace("\"", "");
         String callee = right.replace("\"", "");
@@ -601,12 +561,10 @@ public class QueryEvaluator {
         do {
             changed = false;
 
-            // Dla każdego węzła A
             for (String a : new HashSet<>(result.keySet())) {
                 Set<String> directChildren = result.get(a);
                 Set<String> toAdd = new HashSet<>();
 
-                // Sprawdź każde B, do którego A ma połączenie
                 for (String b : directChildren) {
                     Set<String> bChildren = result.get(b);
                     if (bChildren != null) {
@@ -731,6 +689,26 @@ public class QueryEvaluator {
         if (result != null) {
             partialSolutions.get(right).add(String.valueOf(result));
         }
+    }
+
+    private void handleFollowsStar(String left, String right, Map<String, Set<String>> partialSolutions) {
+        //Get all with that relations
+        Map<Integer, Integer> parentMap = pkb.getAllFollows();
+
+        //Replacing map to string substitute
+        Map<String, Set<String>> relations = new HashMap<>();
+        for (Map.Entry<Integer, Integer> entry : parentMap.entrySet()) {
+            String key = String.valueOf(entry.getKey());
+            String value = String.valueOf(entry.getValue());
+
+            relations.computeIfAbsent(key, k -> new HashSet<>()).add(value);
+        }
+
+        //Star algorithm
+        relations = generateTransitive(relations);
+
+        partialSolutions.clear();
+        partialSolutions.putAll(handleRelation(left, right, relations));
     }
 
     private void handleModifies(String left,

@@ -398,6 +398,8 @@ public void printState() {
         switch (type) {
             case VARIABLE:
                 return assignLhsToStmts.keySet();
+            case PROCEDURE:
+                return procToVarsUsedInIt.keySet();
             default:
                 return entitiyTypeMap.entrySet().stream()
                         .filter(e -> e.getValue() == type)
