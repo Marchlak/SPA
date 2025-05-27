@@ -1,0 +1,134 @@
+stmt s;
+Select s such that Follows(s, 1)
+2
+assign a;
+Select a such that Follows(a, 1)
+2
+stmt s;
+Select s such that Follows(s, 2)
+3
+assign a;
+Select a such that Follows(a, 2)
+3
+stmt s;
+Select s such that Follows(s, 3)
+4
+assign a;
+Select a such that Follows(a, 3)
+none
+stmt s;
+Select s such that Follows(s, 4)
+5
+assign a;
+Select a such that Follows(a, 4)
+5
+stmt s;
+Select s such that Follows(s, 5)
+6
+assign a;
+Select a such that Follows(a, 5)
+none
+stmt s;
+Select s such that Follows(s, 6)
+7
+assign a;
+Select a such that Follows(a, 6)
+7
+stmt s;
+Select s such that Follows(s, 7)
+8
+assign a;
+Select a such that Follows(a, 7)
+none
+stmt s;
+Select s such that Follows(s, 8)
+9
+assign a;
+Select a such that Follows(a, 8)
+none
+stmt s;
+Select s such that Follows(s, 9)
+none
+assign a;
+Select a such that Follows(a, 9)
+none
+stmt s;
+Select s such that Follows(s, 10)
+11
+assign a;
+Select a such that Follows(a, 10)
+none
+stmt s;
+Select s such that Follows(s, 11)
+14
+assign a;
+Select a such that Follows(a, 11)
+14
+stmt s;
+Select s such that Follows(s, 12)
+13
+assign a;
+Select a such that Follows(a, 12)
+13
+stmt s;
+Select s such that Follows(s, 13)
+none
+assign a;
+Select a such that Follows(a, 13)
+none
+stmt s;
+Select s such that Follows(s, 14)
+none
+assign a;
+Select a such that Follows(a, 14)
+none
+stmt s;
+Select s such that Follows(s, 15)
+16
+assign a;
+Select a such that Follows(a, 15)
+none
+stmt s;
+Select s such that Follows(s, 16)
+17
+assign a;
+Select a such that Follows(a, 16)
+17
+stmt s;
+Select s such that Follows(s, 17)
+none
+assign a;
+Select a such that Follows(a, 17)
+none
+stmt s;
+Select s such that Follows(s, 18)
+22
+assign a;
+Select a such that Follows(a, 18)
+22
+stmt s;
+Select s such that Follows(s, 19)
+20
+assign a;
+Select a such that Follows(a, 19)
+none
+stmt s;
+Select s such that Follows(s, 20)
+21
+assign a;
+Select a such that Follows(a, 20)
+21
+stmt s;
+Select s such that Follows(s, 21)
+none
+assign a;
+Select a such that Follows(a, 21)
+none
+stmt s;
+Select s such that Follows(s, 22)
+none
+assign a;
+Select a such that Follows(a, 22)
+none
+stmt s;
+Select s such that

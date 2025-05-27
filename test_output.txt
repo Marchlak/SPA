@@ -1,1 +1,1 @@
-For query Select s such that Follows* (s, s1) with s1.stmt# = 8: 1, 2, 3, 4, 5, 6, 7
+For query Select n such that Modifies(n, v) with v.varName = "t": 1, 6, 8, 15, 17, 18, 19, 28
