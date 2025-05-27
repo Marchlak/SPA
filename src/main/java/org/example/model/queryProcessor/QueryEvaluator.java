@@ -177,7 +177,7 @@ public class QueryEvaluator {
             if (allowedEntities != null) {
                 values.removeIf(v -> {
                     try {
-                        return !allowedEntities.contains(pkb.getEntityType(Integer.parseInt(v)));
+                        return !allowedEntities.contains(pkb.getEntityType(v));
                     } catch (NumberFormatException e) {
                         return true;
                     }
@@ -474,51 +474,21 @@ public class QueryEvaluator {
     }
 
     private void handleCallsStar(String left, String right, Map<String, Set<String>> partialSolutions) {
-        String caller = left.replace("\"", "");
-        String callee = right.replace("\"", "");
+        //Get all with that relations
+        Map<String, Set<String>> relations = pkb.getCallsMap();
 
-        if (synonymsContain(left) && synonymsContain(right)) {
-            for (String proc : pkb.getCallsMap().keySet()) {
-                Set<String> allCallees = pkb.getCallsStar(proc);
-                for (String c : allCallees) {
-                    ensureKey(partialSolutions, left).get(left).add(proc);
-                    ensureKey(partialSolutions, right).get(right).add(c);
-                }
-            }
-        } else if (isStringLiteral(left) && synonymsContain(right)) {
-            Set<String> callees = pkb.getCallsStar(caller);
-            ensureKey(partialSolutions, right).get(right).addAll(callees);
-        } else if (isStringLiteral(right) && synonymsContain(left)) {
-            for (String proc : pkb.getCallsMap().keySet()) {
-                if (pkb.getCallsStar(proc).contains(callee)) {
-                    ensureKey(partialSolutions, left).get(left).add(proc);
-                }
-            }
-        }
+        relations = generateTransitive(relations);
+
+        partialSolutions.clear();
+        partialSolutions.putAll(handleRelation(left, right, relations));
     }
 
     private void handleCalls(String left, String right, Map<String, Set<String>> partialSolutions) {
-        String caller = left.replace("\"", "");
-        String callee = right.replace("\"", "");
+        //Get all with that relations
+        Map<String, Set<String>> relations = pkb.getCallsMap();
 
-        if (synonymsContain(left) && synonymsContain(right)) {
-            for (Map.Entry<String, Set<String>> entry : pkb.getCallsMap().entrySet()) {
-                String procCaller = entry.getKey();
-                for (String procCallee : entry.getValue()) {
-                    ensureKey(partialSolutions, left).get(left).add(procCaller);
-                    ensureKey(partialSolutions, right).get(right).add(procCallee);
-                }
-            }
-        } else if (isStringLiteral(left) && synonymsContain(right)) {
-            Set<String> callees = pkb.getCalls(caller);
-            ensureKey(partialSolutions, right).get(right).addAll(callees);
-        } else if (isStringLiteral(right) && synonymsContain(left)) {
-            for (Map.Entry<String, Set<String>> entry : pkb.getCallsMap().entrySet()) {
-                if (entry.getValue().contains(callee)) {
-                    ensureKey(partialSolutions, left).get(left).add(entry.getKey());
-                }
-            }
-        }
+        partialSolutions.clear();
+        partialSolutions.putAll(handleRelation(left, right, relations));
     }
 
     private void handleParent(String left, String right, Map<String, Set<String>> partialSolutions) {
@@ -560,6 +530,82 @@ public class QueryEvaluator {
 
         //Replacing map to string substitute
         Map<String, Set<String>> relations = substituteRelationFrom(relationsNotTyped);
+
+        //Star algorithm
+        relations = generateTransitive(relations);
+
+        partialSolutions.clear();
+        partialSolutions.putAll(handleRelation(left, right, relations));
+    }
+
+    private void handleFollows(String left, String right, Map<String, Set<String>> partialSolutions) {
+        //Get all with that relations
+        Map<Integer, Integer> parentMap = pkb.getAllFollows();
+
+        //Replacing map to string substitute
+        Map<String, Set<String>> relations = new HashMap<>();
+        for (Map.Entry<Integer, Integer> entry : parentMap.entrySet()) {
+            String key = String.valueOf(entry.getKey());
+            String value = String.valueOf(entry.getValue());
+
+            relations.computeIfAbsent(key, k -> new HashSet<>()).add(value);
+        }
+
+        partialSolutions.clear();
+        partialSolutions.putAll(handleRelation(left, right, relations));
+    }
+
+    private void handleFollowsStar(String left, String right, Map<String, Set<String>> partialSolutions) {
+        //Get all with that relations
+        Map<Integer, Integer> parentMap = pkb.getAllFollows();
+
+        //Replacing map to string substitute
+        Map<String, Set<String>> relations = new HashMap<>();
+        for (Map.Entry<Integer, Integer> entry : parentMap.entrySet()) {
+            String key = String.valueOf(entry.getKey());
+            String value = String.valueOf(entry.getValue());
+
+            relations.computeIfAbsent(key, k -> new HashSet<>()).add(value);
+        }
+
+        //Star algorithm
+        relations = generateTransitive(relations);
+
+        partialSolutions.clear();
+        partialSolutions.putAll(handleRelation(left, right, relations));
+    }
+
+    private void handleNext(String left, String right, Map<String, Set<String>> partialSolutions) {
+        //Get all with that relations
+        Map<Integer, Set<Integer>> nextMap = pkb.getAllNext();
+
+        //Replacing map to string substitute
+        Map<String, Set<String>> relations = new HashMap<>();
+        for (Map.Entry<Integer, Set<Integer>> entry : nextMap.entrySet()) {
+            String key = String.valueOf(entry.getKey());
+            Set<Integer> integers = entry.getValue();
+            Set<String> value = integers.stream().map(String::valueOf).collect(Collectors.toSet());
+
+            relations.computeIfAbsent(key, k -> value);
+        }
+
+        partialSolutions.clear();
+        partialSolutions.putAll(handleRelation(left, right, relations));
+    }
+
+    private void handleNextStar(String left, String right, Map<String, Set<String>> partialSolutions) {
+        //Get all with that relations
+        Map<Integer, Set<Integer>> nextMap = pkb.getAllNext();
+
+        //Replacing map to string substitute
+        Map<String, Set<String>> relations = new HashMap<>();
+        for (Map.Entry<Integer, Set<Integer>> entry : nextMap.entrySet()) {
+            String key = String.valueOf(entry.getKey());
+            Set<Integer> integers = entry.getValue();
+            Set<String> value = integers.stream().map(String::valueOf).collect(Collectors.toSet());
+
+            relations.computeIfAbsent(key, k -> value);
+        }
 
         //Star algorithm
         relations = generateTransitive(relations);
@@ -633,7 +679,7 @@ public class QueryEvaluator {
         else if (Objects.equals(left, "_")) { }
         //When left is numeral filter relations keys - must have same number
         else {
-            relations.keySet().removeIf(k -> !k.equals(left));
+            relations.keySet().removeIf(k -> !k.equals(left.replace("\"", "")));
         }
 
         //When right is synonim type filter values by their type
@@ -649,9 +695,10 @@ public class QueryEvaluator {
         //When right is numeral type values for keys must have same number
         else {
             for (Map.Entry<String, Set<String>> entry : relations.entrySet()) {
+
                 Set<String> modifiableValues = new HashSet<>(entry.getValue());
 
-                modifiableValues.removeIf(k -> !k.equals(right));
+                modifiableValues.removeIf(k -> !k.equals(right.replace("\"", "")));
                 entry.setValue(modifiableValues);
             }
         }
@@ -662,84 +709,6 @@ public class QueryEvaluator {
         return partialSolutions;
     }
 
-
-    private void handleFollows(String left, String right, Map<String, Set<String>> partialSolutions) {
-        if (isNumeric(right) && synonymsContain(left)) {
-            handleFollowedBy(Integer.parseInt(right), left, partialSolutions);
-        }
-
-        else if (isNumeric(left) && synonymsContain(right)) {
-            handleFollowsOf(Integer.parseInt(left), right, partialSolutions);
-        }
-
-        else if (synonymsContain(left) && synonymsContain(right)) {
-            Map<Integer, Integer> allFollows = pkb.getAllFollows();
-            Map<Integer, Integer> allFollowedBy = pkb.getAllFollowedBy();
-
-            Set<String> allFollowedByValues = allFollows.keySet().stream()
-                    .map(String::valueOf)
-                    .collect(Collectors.toSet());
-
-            Set<String> allFollowsValues = allFollows.values().stream()
-                    .map(String::valueOf)
-                    .collect(Collectors.toSet());
-
-            filterByColumnType(left, allFollowedByValues);
-            filterByColumnType(right, allFollowsValues);
-
-            Map<Integer, Integer> filtered = allFollows.entrySet().stream()
-                    .filter(entry -> {
-                        String keyStr = String.valueOf(entry.getKey());
-                        String valStr = String.valueOf(entry.getValue());
-                        return allFollowedByValues.contains(keyStr) && allFollowsValues.contains(valStr);
-                    })
-                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-
-            Set<String> leftSet = partialSolutions.computeIfAbsent(left, k -> new HashSet<>());
-            Set<String> rightSet = partialSolutions.computeIfAbsent(right, k -> new HashSet<>());
-
-            filtered.forEach((k, v) -> {
-                leftSet.add(String.valueOf(k));
-                rightSet.add(String.valueOf(v));
-            });
-        }
-    }
-
-    private void handleFollowedBy(int rightValue, String left, Map<String, Set<String>> partialSolutions) {
-        Integer result = pkb.getFollowedBy(rightValue);
-        ensureKey(partialSolutions, left);
-        if (result != null) {
-            partialSolutions.get(left).add(String.valueOf(result));
-        }
-    }
-
-    private void handleFollowsOf(int leftValue, String right, Map<String, Set<String>> partialSolutions) {
-        Integer result = pkb.getFollows(leftValue);
-        ensureKey(partialSolutions, right);
-        if (result != null) {
-            partialSolutions.get(right).add(String.valueOf(result));
-        }
-    }
-
-    private void handleFollowsStar(String left, String right, Map<String, Set<String>> partialSolutions) {
-        //Get all with that relations
-        Map<Integer, Integer> parentMap = pkb.getAllFollows();
-
-        //Replacing map to string substitute
-        Map<String, Set<String>> relations = new HashMap<>();
-        for (Map.Entry<Integer, Integer> entry : parentMap.entrySet()) {
-            String key = String.valueOf(entry.getKey());
-            String value = String.valueOf(entry.getValue());
-
-            relations.computeIfAbsent(key, k -> new HashSet<>()).add(value);
-        }
-
-        //Star algorithm
-        relations = generateTransitive(relations);
-
-        partialSolutions.clear();
-        partialSolutions.putAll(handleRelation(left, right, relations));
-    }
 
     private void handleModifies(String left,
                                 String right,
@@ -818,65 +787,20 @@ public class QueryEvaluator {
         }
     }
 
-    private void handleUses(String left, String right,
-                            Map<String, Set<String>> partial) {
+    private void handleUses(String left, String right, Map<String, Set<String>> partialSolutions) {
+        //Get all with that relations
+        Map<Integer, Set<String>> nextMap = pkb.getAllUses();
 
-        boolean leftIsNum = isNumeric(left);
-        boolean rightIsNum = isNumeric(right);
-
-        boolean leftIsLit = isStringLiteral(left);
-        boolean rightIsLit = isStringLiteral(right);
-
-        String leftLit = leftIsLit ? left.substring(1, left.length() - 1) : null;
-        String rightLit = rightIsLit ? right.substring(1, right.length() - 1) : null;
-
-        if (isStmtSyn(left) && rightLit != null) {
-            for (int stmt : pkb.getAllStmts()) {
-                if (pkb.getUsedByStmt(stmt).stream()
-                        .anyMatch(v -> v.equalsIgnoreCase(rightLit))) {
-                    ensureKey(partial, left).get(left).add(String.valueOf(stmt));
-                }
-            }
-            return;
+        //Replacing map to string substitute
+        Map<String, Set<String>> relations = new HashMap<>();
+        for (Map.Entry<Integer, Set<String>> entry : nextMap.entrySet()) {
+            String key = String.valueOf(entry.getKey());
+            relations.computeIfAbsent(key, k -> entry.getValue());
         }
+        relations.putAll(pkb.getAllUsesProc());
 
-        if (leftIsNum && synonymsContain(right)) {
-            ensureKey(partial, right).get(right).addAll(pkb.getUsedByStmt(Integer.parseInt(left)));
-            return;
-        }
-
-        if (leftIsLit && synonymsContain(right)) {
-            ensureKey(partial, right).get(right).addAll(pkb.getUsedByProc(leftLit));
-            return;
-        }
-
-        if (isProcSyn(left) && synonymsContain(right)) {
-            for (String proc : pkb.getAllProcedures()) {
-                for (String var : pkb.getUsedByProc(proc)) {
-                    ensureKey(partial, left).get(left).add(proc);
-                    ensureKey(partial, right).get(right).add(var);
-                }
-            }
-            return;
-        }
-
-        if (isStmtSyn(left) && synonymsContain(right)) {
-            for (int stmt : pkb.getAllStmts()) {
-                for (String var : pkb.getUsedByStmt(stmt)) {
-                    ensureKey(partial, left).get(left).add(String.valueOf(stmt));
-                    ensureKey(partial, right).get(right).add(var);
-                }
-            }
-            return;
-        }
-
-        if (isProcSyn(left) && rightLit != null) {
-            for (String proc : pkb.getAllProcedures()) {
-                if (pkb.getUsedByProc(proc).contains(rightLit)) {
-                    ensureKey(partial, left).get(left).add(proc);
-                }
-            }
-        }
+        partialSolutions.clear();
+        partialSolutions.putAll(handleRelation(left, right, relations));
     }
 
     private boolean isStringLiteral(String s) {
@@ -1015,81 +939,6 @@ public class QueryEvaluator {
     private boolean isProcSyn(String name) {
         return getSynType(name) == SynonymType.PROCEDURE;
     }
-
-    private void handleNext(String left, String right, Map<String, Set<String>> partial) {
-        if (isNumeric(left) && isNumeric(right)) {
-            int l = Integer.parseInt(left), r = Integer.parseInt(right);
-            if (pkb.getNext(l).contains(r)) {
-                partial.computeIfAbsent("BOOLEAN", k -> new HashSet<>()).add("T");
-            }
-            return;
-        }
-
-        if (isNumeric(left) && synonymsContain(right)) {
-            int l = Integer.parseInt(left);
-            partial.computeIfAbsent(right, k -> new HashSet<>())
-                    .addAll(pkb.getNext(l).stream().map(String::valueOf).toList());
-            return;
-        }
-
-        if (synonymsContain(left) && isNumeric(right)) {
-            int r = Integer.parseInt(right);
-            Set<String> set = partial.computeIfAbsent(left, k -> new HashSet<>());
-            for (int stmt : pkb.getAllStmts()) {
-                if (pkb.getNext(stmt).contains(r)) set.add(String.valueOf(stmt));
-            }
-            return;
-        }
-
-        if (synonymsContain(left) && synonymsContain(right)) {
-            Set<String> lSet = partial.computeIfAbsent(left, k -> new HashSet<>());
-            Set<String> rSet = partial.computeIfAbsent(right, k -> new HashSet<>());
-            for (int from : pkb.getAllStmts()) {
-                for (int to : pkb.getNext(from)) {
-                    lSet.add(String.valueOf(from));
-                    rSet.add(String.valueOf(to));
-                }
-            }
-        }
-    }
-
-    private void handleNextStar(String left, String right, Map<String, Set<String>> partial) {
-        if (isNumeric(left) && isNumeric(right)) {
-            int l = Integer.parseInt(left), r = Integer.parseInt(right);
-            if (pkb.getNextStar(l).contains(r)) {
-                partial.computeIfAbsent("BOOLEAN", k -> new HashSet<>()).add("T");
-            }
-            return;
-        }
-
-        if (isNumeric(left) && synonymsContain(right)) {
-            int l = Integer.parseInt(left);
-            partial.computeIfAbsent(right, k -> new HashSet<>())
-                    .addAll(pkb.getNextStar(l).stream().map(String::valueOf).toList());
-            return;
-        }
-
-        if (synonymsContain(left) && isNumeric(right)) {
-            int r = Integer.parseInt(right);
-            Set<String> set = partial.computeIfAbsent(left, k -> new HashSet<>());
-            for (int stmt : pkb.getAllStmts()) {
-                if (pkb.getNextStar(stmt).contains(r)) set.add(String.valueOf(stmt));
-            }
-            return;
-        }
-
-        if (synonymsContain(left) && synonymsContain(right)) {
-            Set<String> lSet = partial.computeIfAbsent(left, k -> new HashSet<>());
-            Set<String> rSet = partial.computeIfAbsent(right, k -> new HashSet<>());
-            for (int from : pkb.getAllStmts()) {
-                for (int to : pkb.getNextStar(from)) {
-                    lSet.add(String.valueOf(from));
-                    rSet.add(String.valueOf(to));
-                }
-            }
-        }
-    }
-
 
     private List<String> splitPatternArgs(String argsRaw) {
         List<String> args = new ArrayList<>();

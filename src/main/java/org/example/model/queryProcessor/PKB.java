@@ -86,6 +86,26 @@ public Set<String> getAllConstants() { return new HashSet<>(constants); }
         return callStmtToProc.get(stmt);
     }
 
+    public EntityType getEntityType(String entityIdentifier) {
+        try {
+            int stmtNum = Integer.parseInt(entityIdentifier);
+            EntityType type = entitiyTypeMap.get(stmtNum);
+            if (type != null) {
+                return type;
+            }
+        } catch (NumberFormatException ignored) { }
+
+        if (assignLhsToStmts.containsKey(entityIdentifier)) {
+            return EntityType.VARIABLE;
+        }
+
+        if (modifiesProc.containsKey(entityIdentifier)) {
+            return EntityType.PROCEDURE;
+        }
+
+        throw new IllegalArgumentException("Unknown entity identifier: " + entityIdentifier);
+    }
+
     public EntityType getEntityType(int stmt) {
         return entitiyTypeMap.get(stmt);
     }
@@ -221,9 +241,17 @@ public Set<String> getAllConstants() { return new HashSet<>(constants); }
         return modifiesProc.getOrDefault(proc, new HashSet<>());
     }
 
+    public Map<Integer, Set<String>> getAllUses() {
+        return new HashMap<>(usesStmt);
+    }
+
     public void setUsesStmt(int stmt, String var) {
         usesStmt.computeIfAbsent(stmt, k -> new HashSet<>()).add(var);
         varToStmtsUsingIt.computeIfAbsent(var, k -> new HashSet<>()).add(stmt);
+    }
+
+    public Map<String, Set<String>> getAllUsesProc() {
+        return usesProc;
     }
 
     public void setUsesProc(String proc, String var) {
@@ -414,6 +442,10 @@ public void printState() {
     }
     public Set<String> getAllVariables() {
         return new HashSet<>(variables);
+    }
+
+    public Map<Integer, Set<Integer>> getAllNext() {
+        return new HashMap<>(nextMap);
     }
 
     public void addNext(int from, int to) {
