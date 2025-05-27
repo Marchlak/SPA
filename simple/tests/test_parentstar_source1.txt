@@ -93,7 +93,7 @@ Select s such that Parent* (ifstat, s)
 9, 10, 11, 12, 13, 14, 15, 16, 25, 26
 if ifstat; while w;
 Select w such that Parent* (ifstat, w)
-10, 18, 23
+10
 while w; if ifstat;
 Select ifstat such that Parent* (w, ifstat)
 24
