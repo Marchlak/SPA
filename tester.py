@@ -42,13 +42,20 @@ for test_file in test_files:
     )
     start = time.time()
     while True:
-        line = process.stdout.readline()
+        try:
+            line = process.stdout.readline()
+        except Exception:
+            print(f"{RED}Error reading from process at startup{RESET}")
+            process.kill()
+            sys.exit(1)
         if not line:
+            print(f"{RED}Process closed before Ready signal{RESET}")
             process.kill()
             sys.exit(1)
         if "Ready" in line:
             break
         if time.time() - start > 10:
+            print(f"{RED}Timeout waiting for Ready signal{RESET}")
             process.kill()
             sys.exit(1)
     with open(test_file, "r", encoding="ibm852") as f:
@@ -63,35 +70,45 @@ for test_file in test_files:
         expected = lines[i+2]
         i += 3
         total_tests += 1
-        process.stdin.write(declarations + "\n")
-        process.stdin.write(query + "\n")
-        process.stdin.flush()
-        answer = process.stdout.readline().rstrip("\n")
+        try:
+            process.stdin.write(declarations + "\n")
+            process.stdin.write(query + "\n")
+            process.stdin.flush()
+        except BrokenPipeError:
+            print(f"{RED}Broken pipe: cannot write to process for query {query}{RESET}")
+            file_failures.append((declarations, query, expected, "<no answer>"))
+            break
+        try:
+            answer = process.stdout.readline().rstrip("\n")
+        except Exception:
+            print(f"{RED}Error reading answer for query {query}{RESET}")
+            file_failures.append((declarations, query, expected, "<no answer>"))
+            break
         exp_items = [s.strip() for s in expected.split(",")]
         ans_items = [s.strip() for s in answer.split(",")]
         try:
             exp_sorted = sorted(exp_items, key=lambda x: int(x) if x.isdigit() else x)
             ans_sorted = sorted(ans_items, key=lambda x: int(x) if x.isdigit() else x)
-        except:
+        except Exception:
             exp_sorted = sorted(exp_items)
             ans_sorted = sorted(ans_items)
         if exp_sorted == ans_sorted:
             passed_tests += 1
         else:
             failed_tests += 1
-            file_failures.append((declarations, query, exp_sorted, ans_sorted))
+            file_failures.append((declarations, query, expected, answer))
     print(f"{CYAN}{'='*20} {testname} {'='*20}{RESET}")
     if not file_failures:
         print(f"{GREEN}OK{RESET}")
     else:
-        for decl, qry, exp_sorted, ans_sorted in file_failures:
+        for decl, qry, exp, ans in file_failures:
             if decl is None:
                 print(f"{RED}Test file format error{RESET}")
             else:
                 print(f"{CYAN}{decl}{RESET}")
                 print(f"{ORANGE}{qry}{RESET}")
-                print(f"{YELLOW}expected\n{', '.join(exp_sorted)}{RESET}")
-                print(f"{RED}got\n{', '.join(ans_sorted)}{RESET}")
+                print(f"{YELLOW}expected\n{exp}{RESET}")
+                print(f"{RED}got\n{ans}{RESET}")
     print()
 process.terminate()
 print(f"Przeszło: {passed_tests}")

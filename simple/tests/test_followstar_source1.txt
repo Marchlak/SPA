@@ -94,6 +94,3 @@ Select ifstat such that Follows* (ifstat, s)
 while w; assign a;
 Select w such that Follows* (w, a)
 10,18,23
-while w; call c;
-Select w such that Follows* (w, c)
-none

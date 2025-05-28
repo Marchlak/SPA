@@ -44,6 +44,7 @@ public class QueryEvaluator {
         Map<String, Set<String>> solutions;
         try {
             solutions = processQuery(processed, rawTail, synonyms, isBoolResult);
+
         }
         catch (Exception e) {
             return "Error processing query";
@@ -735,6 +736,7 @@ public class QueryEvaluator {
 
         partialSolutions.clear();
         partialSolutions.putAll(handleRelation(left, right, relations));
+        String aga ="aha";
     }
 
     private void handleUses(String left, String right, Map<String, Set<String>> partialSolutions) {
@@ -751,6 +753,7 @@ public class QueryEvaluator {
 
         partialSolutions.clear();
         partialSolutions.putAll(handleRelation(left, right, relations));
+        String aga="aha";
     }
 
     private boolean isStringLiteral(String s) {

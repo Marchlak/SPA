@@ -1,3 +1,3 @@
-while w; assign a;
-Select a such that Modifies (a, "t") such that Parent (w, a)
-19
+assign a; variable v;
+Select a such that Modifies (a, v) and Uses (a, v)
+28, 26, 11, 16, 21
