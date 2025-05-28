@@ -95,7 +95,6 @@ public class Validator {
 
     private String attributesAlternation() {
         List<String> patterns = new ArrayList<>();
-        // literal comparisons
         for (Synonym s : synonyms) {
             switch (s.type()) {
                 case STMT, ASSIGN, WHILE, IF ->
@@ -108,7 +107,6 @@ public class Validator {
                         patterns.add(s.name() + "\\.PROCNAME\\s*=\\s*\\\"[A-Z][A-Z0-9]*\\\"");
             }
         }
-
         List<Synonym> numericSyns = synonyms.stream()
                 .filter(s -> switch (s.type()) {
                     case STMT, ASSIGN, WHILE, IF, CONSTANT -> true;
@@ -120,6 +118,7 @@ public class Validator {
             for (Synonym s2 : numericSyns) {
                 String attr2 = (s2.type() == SynonymType.CONSTANT) ? "VALUE" : "STMT#";
                 patterns.add(s1.name() + "\\." + attr1 + "\\s*=\\s*" + s2.name() + "\\." + attr2);
+                patterns.add(s1.name() + "\\." + attr1 + "\\s*=\\s*" + s2.name());
             }
         }
         return String.join("|", patterns);

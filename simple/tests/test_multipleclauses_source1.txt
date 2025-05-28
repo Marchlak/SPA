@@ -64,12 +64,12 @@ none
 stmt s;
 Select s such that Uses(s, "k") and Modifies(s, "a") and Parent* (24, s)
 26
-stmt s;
-Select s such that Follows(3, s) and Parent(8, s) with s.stmt# = 9
-9
 assign a; variable v;
 Select a such that Uses(a, v) and Modifies(a, v) with v.varName = "d"
 11
 assign a; variable v; stmt s;
 Select a such that Uses(a, v) and Modifies(a, v)  and Follows*(a,s) with v.varName = "d" and s.stmt# = 12
 11
+stmt s;
+Select s such that Follows(3, s) and Parent(8, s) with s.stmt# = 9
+none

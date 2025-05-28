@@ -1,0 +1,9 @@
+stmt s; 
+Select s such that Next(1, s) and Next(s, 2)
+none
+stmt s1, s2; 
+Select s1 such that Next(s1, s2) and Next(s2, 20) and Next(20, s1)
+none
+stmt s1, s2, s3; 
+Select s1 such that Next(s1, s2) and Next(s2, s3) and Next(s3, s1)
+26, 27, 28, 79, 80, 89, 101, 102, 103, 113, 114, 115, 187, 188, 189, 251, 252, 253, 256, 257, 258, 264, 265, 277

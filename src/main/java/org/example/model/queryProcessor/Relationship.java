@@ -1,41 +1,25 @@
 package org.example.model.queryProcessor;
 
-class Relationship {
-    private RelationshipType type;
-    private String firstArg;
-    private String secondArg;
+public class Relationship {
+    private final RelationshipType type;
+    private final String rawArgs; // np. "s1, s2"
 
-    Relationship(RelationshipType type, String args) {
-        try {
-            this.type = type;
-            this.firstArg = args.split(",")[0].trim();
-            this.secondArg = args.split(",")[1].trim();
-        } catch (Exception ignored) {
-        }
+    public Relationship(RelationshipType type, String rawArgs) {
+        this.type = type;
+        this.rawArgs = rawArgs;
     }
 
     public RelationshipType getType() {
         return type;
     }
 
-    public void setType(RelationshipType type) {
-        this.type = type;
-    }
-
     public String getFirstArg() {
-        return firstArg;
-    }
-
-    public void setFirstArg(String firstArg) {
-        this.firstArg = firstArg;
+        String[] parts = rawArgs.split(",");
+        return parts[0].trim();
     }
 
     public String getSecondArg() {
-        return secondArg;
+        String[] parts = rawArgs.split(",");
+        return parts[1].trim();
     }
-
-    public void setSecondArg(String secondArg) {
-        this.secondArg = secondArg;
-    }
-    
 }
