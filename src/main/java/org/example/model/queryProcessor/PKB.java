@@ -95,7 +95,7 @@ public Set<String> getAllConstants() { return new HashSet<>(constants); }
             }
         } catch (NumberFormatException ignored) { }
 
-        if (assignLhsToStmts.containsKey(entityIdentifier)) {
+        if (variables.contains(entityIdentifier)) {
             return EntityType.VARIABLE;
         }
 
