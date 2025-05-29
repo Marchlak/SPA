@@ -1,0 +1,35 @@
+procedure Circle {
+1. t = 1;
+2. a = t + 10;
+3. d = t * a + 2;
+4. call Triangle;
+5. b = t + a;
+6. call Hexagon;
+7. b = t + a;
+8. if t then {
+9. k = a - d;
+10. while c {
+11. d = d + t;
+12. c = d + 1; }
+13. a = d + t; }
+else {
+14. a = d + t;
+15. call Hexagon;
+16. c = c - 1; }
+17. call Rectangle; }
+procedure Rectangle {
+18. while c {
+19. t = d + 3 * a + c;
+20. call Triangle;
+21. c = c + 20; }
+22. d = t; }
+procedure Triangle {
+23. while d {
+24. if t then {
+25. d = t + 2; }
+else {
+26. a = t * a + d + k * b; }}
+27. c = t + k + d; }
+procedure Hexagon {
+28. t = a + t; }
+

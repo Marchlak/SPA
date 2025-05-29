@@ -50,8 +50,8 @@ public class Main {
 
     public static void testRun(String[] args) {
 
-        String programFilePath = "./simple/simple_sources/source1.txt";
-        String[] queryFilePaths = {"./simple/tests/test_gihubsimple_source1.txt"};
+        String programFilePath = "./simple/simple_sources/source2.txt";
+        String[] queryFilePaths = {"./simple/tests/test_zzz_source2.txt"};
 
         for (String qFile : queryFilePaths) {
             System.out.println("\n🧪 Running tests for:");
@@ -117,7 +117,7 @@ public class Main {
     }
 
     public static void main(String[] args) {
-        //testRun(args);
+      //  testRun(args);
         defaultRun(args);
     }
 }

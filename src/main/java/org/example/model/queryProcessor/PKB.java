@@ -250,7 +250,33 @@ public Set<String> getAllConstants() { return new HashSet<>(constants); }
     }
 
     public Map<Integer, Set<String>> getAllUses() {
-        return new HashMap<>(usesStmt);
+        Map<Integer, Set<String>> result = new HashMap<>();
+        for (var e : usesStmt.entrySet()) {
+            result.put(e.getKey(), new HashSet<>(e.getValue()));
+        }
+        for (var entry : callStmtToProc.entrySet()) {
+            int stmt = entry.getKey();
+            String proc = entry.getValue();
+            Set<String> vars = new HashSet<>();
+            vars.addAll(usesProc.getOrDefault(proc, Set.of()));
+            for (String callee : getCallsStar(proc)) {
+                vars.addAll(usesProc.getOrDefault(callee, Set.of()));
+            }
+            result.computeIfAbsent(stmt, k -> new HashSet<>()).addAll(vars);
+        }
+        return result;
+    }
+
+    public Set<String> getUsedByStmt(int stmt) {
+        Set<String> result = new HashSet<>(usesStmt.getOrDefault(stmt, Set.of()));
+        String proc = callStmtToProc.get(stmt);
+        if (proc != null) {
+            result.addAll(usesProc.getOrDefault(proc, Set.of()));
+            for (String callee : getCallsStar(proc)) {
+                result.addAll(usesProc.getOrDefault(callee, Set.of()));
+            }
+        }
+        return result;
     }
 
     public void setUsesStmt(int stmt, String var) {
@@ -265,10 +291,6 @@ public Set<String> getAllConstants() { return new HashSet<>(constants); }
     public void setUsesProc(String proc, String var) {
         usesProc.computeIfAbsent(proc, k -> new HashSet<>()).add(var);
         procToVarsUsedInIt.computeIfAbsent(proc, k -> new HashSet<>()).add(var);
-    }
-
-    public Set<String> getUsedByStmt(int stmt) {
-        return usesStmt.getOrDefault(stmt, new HashSet<>());
     }
 
     public Set<String> getUsedByProc(String proc) {

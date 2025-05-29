@@ -151,20 +151,20 @@ public class QueryEvaluator {
     private Set<EntityType> mapSynonimToEntities(SynonymType synonymType) {
         return switch (synonymType) {
             case ASSIGN -> Set.of(EntityType.ASSIGN);
-            case WHILE  -> Set.of(EntityType.WHILE);
-            case IF     -> Set.of(EntityType.IF);
-            case CALL   -> Set.of(EntityType.CALL);
-            case STMT,
-                 PROG_LINE -> Set.of(
-                    EntityType.STMT,
-                    EntityType.ASSIGN,
-                    EntityType.CALL,
+            case WHILE -> Set.of(EntityType.WHILE);
+            case IF -> Set.of(EntityType.IF);
+            case CALL -> Set.of(EntityType.CALL);
+            case STMT -> Set.of(EntityType.IF,
                     EntityType.WHILE,
-                    EntityType.IF
-            );
-            case VARIABLE  -> Set.of(EntityType.VARIABLE);
+                    EntityType.CALL,
+                    EntityType.ASSIGN);
+            case VARIABLE -> Set.of(EntityType.VARIABLE);
             case PROCEDURE -> Set.of(EntityType.PROCEDURE);
-            default        -> null;
+            case PROG_LINE -> Set.of(EntityType.IF,
+                    EntityType.WHILE,
+                    EntityType.CALL,
+                    EntityType.ASSIGN);
+            default -> null;
         };
     }
 
@@ -664,6 +664,30 @@ public class QueryEvaluator {
     }
 
 
+    private List<String> splitPatternArgs(String argsRaw) {
+        List<String> args = new ArrayList<>();
+        int depth = 0;
+        StringBuilder current = new StringBuilder();
+
+        for (int i = 0; i < argsRaw.length(); i++) {
+            char c = argsRaw.charAt(i);
+
+            if (c == ',' && depth == 0) {
+                args.add(current.toString().trim());
+                current.setLength(0);
+            } else {
+                if (c == '(') depth++;
+                else if (c == ')') depth--;
+                current.append(c);
+            }
+        }
+
+        if (!current.isEmpty()) {
+            args.add(current.toString().trim());
+        }
+
+        return args;
+    }
 
 
 
