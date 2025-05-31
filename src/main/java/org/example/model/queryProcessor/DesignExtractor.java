@@ -380,7 +380,22 @@ private void processWhile(TNode whileNode, int whileNr) {
         }
     }
 
+    // DesignExtractor
+
     private void propagateCallUses() {
+        boolean changed;
+        do {
+            changed = false;
+            for (String caller : pkb.getAllProcedures()) {
+                for (String callee : pkb.getCallsStar(caller)) {
+                    for (String var : pkb.getUsedByProc(callee)) {
+                        if (pkb.setUsesProc(caller, var)) {
+                            changed = true;
+                        }
+                    }
+                }
+            }
+        } while (changed);
         for (Integer callStmt : pkb.getAllCallStmts()) {
             String callee = pkb.getCalledProcByStmt(callStmt);
             for (String var : pkb.getUsedByProc(callee)) {

@@ -199,9 +199,10 @@ public Set<String> getAllConstants() { return new HashSet<>(constants); }
         return usesProc;
     }
 
-    public void setUsesProc(String proc, String var) {
-        usesProc.computeIfAbsent(proc, k -> new HashSet<>()).add(var);
-        procToVarsUsedInIt.computeIfAbsent(proc, k -> new HashSet<>()).add(var);
+    // PKB
+    public boolean setUsesProc(String proc, String var) {
+        usesProc.computeIfAbsent(proc, k -> new HashSet<>());
+        return usesProc.get(proc).add(var);
     }
 
     public Set<String> getUsedByProc(String proc) {
