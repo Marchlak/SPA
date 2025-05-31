@@ -1,0 +1,9 @@
+procedure p1, p2
+Select <p1.procName, p2.procName> such that Calls(p1, p2)
+Rectangle Hexagon, Circle Hexagon, Rectangle Rectangle, Rectangle Triangle, Circle Triangle, Circle Rectangle
+procedure p1, p2; variable v; while w; assign a
+Select <v.varName, a.stmt#, p1.procName> such that Calls(p1, p2) and Modifies(p2, v) and Parent(w, a) and Uses(a, v) and Modifies(a, v) with v.varName="d"
+d,11 Circle, d 11 Rectangle
+assign a1, a2; while w
+Select <a1.stmt#, a2.stmt#, w.stmt#> pattern a1 (_, "d + 3 * a + c") and pattern a2 (_, "t+k+d") such that Parent*(w, a1)
+19, 27, 18

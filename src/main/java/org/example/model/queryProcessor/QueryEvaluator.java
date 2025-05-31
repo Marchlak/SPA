@@ -410,18 +410,9 @@ public class QueryEvaluator {
                 return m5;
             case AFFECTS:
                 return pkb.getAffectsStringMap();
-            case AFFECTS_STAR: {
+            case AFFECTS_STAR:
                 Map<String,Set<String>> aff = new HashMap<>(pkb.getAffectsStringMap());
-                aff = generateTransitive(aff);
-                Set<String> nodes = new HashSet<>();
-                for (var e : aff.entrySet()) {
-                    nodes.add(e.getKey());
-                    nodes.addAll(e.getValue());
-                }
-                for (String n : nodes)
-                    aff.computeIfAbsent(n, k -> new HashSet<>()).add(n);
-                return aff;
-            }
+                return generateTransitive(aff);
             default:
                 return Collections.emptyMap();
         }
