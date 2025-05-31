@@ -87,7 +87,7 @@ Select p such that Modifies(n, "t")
 Circle, Hexagon, Rectangle, Triangle
 prog_line n;
 Select n such that Modifies(n, "a")
-13, 14, 18, 2, 20, 23, 24, 26, 4, 8
+13, 14, 18, 2, 20, 23, 24, 26, 4, 8, 17
 while w; prog_line n;
 Select w such that Modifies(n,"a")
 10,18,23

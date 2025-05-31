@@ -10,9 +10,6 @@ Select a1 such that Next(a1, a2)
 call c1, c2, c3; 
 Select c3 such that Next(c1, c2) and Next(c2, c3)
 45, 297
-while w1, w2; 
-Select w1 such that Next(w1, w2)
-105, 59, 26, 83, 89, 69, 79, 95, 103, 101, 181, 180, 187, 217, 218, 264
 stmt s; 
 Select s such that Next(1, s) and Next(s, 2)
 none

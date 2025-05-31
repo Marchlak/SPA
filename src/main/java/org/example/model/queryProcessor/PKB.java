@@ -33,7 +33,6 @@ public class PKB {
     private final Map<Integer, String> callStmtToProc = new HashMap<>();
 
     private final Map<String, Set<Integer>> varToStmtsUsingIt = new HashMap<>();
-    private final Map<String, Set<String>> procToVarsUsedInIt = new HashMap<>();
 
     private final Map<Integer, Set<Integer>> nextMap = new HashMap<>();
     private final Map<Integer, Set<Integer>> nextStarMap = new HashMap<>();
@@ -42,6 +41,21 @@ public class PKB {
 
     private final Map<Integer, Set<String>> ifControlVars = new HashMap<>();
     private final Set<String> constants = new HashSet<>();
+
+    private final Map<Integer, Set<Integer>> affectsMap = new HashMap<>();
+    private final Map<Integer, String> stmtToProc = new HashMap<>();
+
+    public void addAffects(int from, int to) { affectsMap.computeIfAbsent(from,k->new HashSet<>()).add(to); }
+    public Map<Integer, Set<Integer>> getAffectsMap() { return new HashMap<>(affectsMap); }
+    public Map<String, Set<String>> getAffectsStringMap() {
+        Map<String, Set<String>> out = new HashMap<>();
+        for (var e : affectsMap.entrySet()) {
+            out.put(String.valueOf(e.getKey()), e.getValue().stream().map(String::valueOf).collect(Collectors.toSet()));
+        }
+        return out;
+    }
+    public void setStmtProcedure(int stmt, String proc) { stmtToProc.put(stmt, proc); }
+    public String getProcedureOfStmt(int stmt) { return stmtToProc.get(stmt); }
 
     public void addConstant(String value){ constants.add(value); }
 
@@ -111,9 +125,6 @@ public Set<String> getAllConstants() { return new HashSet<>(constants); }
     }
 
 
-    public Map<Integer, Set<Integer>> getParentStarMap() {
-        return parentStarCache;
-    }
 
 
     public void setIfControlVars(int stmt, Set<String> vars){
@@ -199,7 +210,6 @@ public Set<String> getAllConstants() { return new HashSet<>(constants); }
         return usesProc;
     }
 
-    // PKB
     public boolean setUsesProc(String proc, String var) {
         usesProc.computeIfAbsent(proc, k -> new HashSet<>());
         return usesProc.get(proc).add(var);
@@ -264,9 +274,6 @@ public Set<String> getAllConstants() { return new HashSet<>(constants); }
         return new HashSet<>(callsStarCache.get(caller));
     }
 
-    public Set<String> getCalls(String caller) {
-        return callsMap.getOrDefault(caller, new HashSet<>());
-    }
 
     public Map<String, Set<String>> getCallsMap() {
         return new HashMap<>(callsMap);
@@ -276,20 +283,6 @@ public Set<String> getAllConstants() { return new HashSet<>(constants); }
         return entitiyTypeMap.keySet();
     }
 
-    public Set<String> getStmtsByType(EntityType type) {
-        switch (type) {
-            case VARIABLE:
-                return assignLhsToStmts.keySet();
-            case PROCEDURE:
-                return procToVarsUsedInIt.keySet();
-            default:
-                return entitiyTypeMap.entrySet().stream()
-                        .filter(e -> e.getValue() == type)
-                        .map(Map.Entry::getKey)
-                        .map(String::valueOf)
-                        .collect(Collectors.toSet());
-        }
-    }
 
     public Set<String> getAllProcedures() {
         return new HashSet<>(procedures);
@@ -314,9 +307,6 @@ public Set<String> getAllConstants() { return new HashSet<>(constants); }
         nextStarMap.computeIfAbsent(from, k -> new HashSet<>()).add(to);
     }
 
-    public Set<Integer> getNextStar(int stmt) {
-        return nextStarMap.getOrDefault(stmt, Set.of());
-    }
 
     public boolean treesEqual(TNode a, TNode b) {
         if (a == null && b == null) return true;

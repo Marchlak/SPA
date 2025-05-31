@@ -49,8 +49,17 @@ public class Validator {
 
     private void buildPattern() {
         String synAlt = synonyms.isEmpty() ? "" : String.join("|", synonyms.stream().map(Synonym::name).toList());
-        String selAlt = (synAlt.isEmpty() ? "" : synAlt + '|') + "BOOLEAN";
-        String select = "^SELECT\\s+(?:" + selAlt + ")(?:\\s*,\\s*(?:" + selAlt + "))*";
+
+        String tupleSel = synAlt.isEmpty()
+                ? ""
+                : "<\\s*(?:" + synAlt + ")(?:\\s*,\\s*(?:" + synAlt + "))*\\s*>";
+
+        String listSel = synAlt.isEmpty()
+                ? ""
+                : "(?:" + synAlt + ")(?:\\s*,\\s*(?:" + synAlt + "))*";
+
+        String select = "^SELECT\\s+(?:" + tupleSel + (tupleSel.isEmpty() ? "" : "|")
+                + listSel + (listSel.isEmpty() ? "" : "|") + "BOOLEAN)";
 
         String relAlt = relationsAlternation(synAlt);
         String relClause = "SUCH\\s+THAT\\s+(?:" + relAlt + ")(?:\\s+AND\\s+(?:" + relAlt + "))*";
@@ -63,12 +72,12 @@ public class Validator {
             withClause = "WITH\\s+(?:" + attrAlt + ")(?:\\s+AND\\s+(?:" + attrAlt + "))*";
         }
 
-        StringBuilder clauseBuilder = new StringBuilder();
-        clauseBuilder.append("(?:").append(relClause);
-        if (withClause != null) clauseBuilder.append('|').append(withClause);
-        clauseBuilder.append('|').append(patternClause).append(")");
+        StringBuilder clauses = new StringBuilder();
+        clauses.append("(?:").append(relClause);
+        if (withClause != null) clauses.append('|').append(withClause);
+        clauses.append('|').append(patternClause).append(")");
 
-        queryPattern = select + "(?:\\s+" + clauseBuilder + "*)*$";
+        queryPattern = select + "(?:\\s+" + clauses + "*)*$";
     }
 
     private String relationsAlternation(String synAlt) {

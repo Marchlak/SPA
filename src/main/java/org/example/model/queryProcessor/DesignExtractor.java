@@ -4,6 +4,7 @@ import org.example.model.ast.TNode;
 import org.example.model.enums.EntityType;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class DesignExtractor {
     private final PKB pkb;
@@ -29,6 +30,7 @@ public class DesignExtractor {
         propagateCallModifies();
         propagateCallUses();
         extractNextRelations();
+        extractAffectsRelations();
     }
 
     private void processProcedure(TNode procNode) {
@@ -45,6 +47,39 @@ public class DesignExtractor {
 
         parentStack.clear();         // porządek, gdyby coś zostało
         currentProcedure = null;
+    }
+
+
+
+    private void extractAffectsRelations() {
+        for (String proc : pkb.getAllProcedures()) {
+            Set<Integer> stmts = pkb.getAllStmts().stream()
+                    .filter(s -> proc.equals(pkb.getProcedureOfStmt(s)))
+                    .collect(Collectors.toSet());
+            for (int a1 : stmts) {
+                if (pkb.getEntityType(a1) != EntityType.ASSIGN) continue;
+                Set<String> mods = pkb.getModifiedByStmt(a1);
+                if (mods.size() != 1) continue;
+                String v = mods.iterator().next();
+                Deque<Integer> dq = new ArrayDeque<>(pkb.getNext(a1));
+                Set<Integer> seen = new HashSet<>();
+                while (!dq.isEmpty()) {
+                    int cur = dq.pop();
+                    if (!seen.add(cur)) continue;
+
+                    if (pkb.getUsedByStmt(cur).contains(v) &&
+                            pkb.getEntityType(cur) == EntityType.ASSIGN)
+                        pkb.addAffects(a1, cur);
+
+                    EntityType et = pkb.getEntityType(cur);
+                    boolean redefines = (et == EntityType.ASSIGN || et == EntityType.CALL)
+                            && pkb.getModifiedByStmt(cur).contains(v);
+                    if (redefines) continue;
+
+                    dq.addAll(pkb.getNext(cur));
+                }
+            }
+        }
     }
 
 
@@ -110,6 +145,7 @@ public class DesignExtractor {
             pendingWhileFalse.clear();
 
             pkb.addStmt(curr, stmt.getType());
+            pkb.setStmtProcedure(curr, currentProcedure);
             nodeToStmt.put(stmt, curr);
             if (!parentStack.isEmpty()) pkb.setParent(parentStack.peek(), curr);
 
@@ -176,7 +212,6 @@ private void processWhile(TNode whileNode, int whileNr) {
         addNextEdge(lastTopLevel, whileNr); // powrót (TRUE) tylko z instrukcji „prostych”
     }
 
-    /* gałąź FALSE */
     /* gałąź FALSE */
 /* gałąź FALSE – zawsze rejestrujemy hook do pierwszej
    kolejnej instrukcji w tej samej procedurze */
@@ -405,15 +440,6 @@ private void processWhile(TNode whileNode, int whileNr) {
         }
     }
 
-    private int getLastStatementIn(TNode stmtListNode) {
-        TNode last = stmtListNode.getFirstChild();
-        TNode current = last;
-        while (current != null) {
-            last = current;
-            current = current.getRightSibling();
-        }
-        return currentStmtNumber - 1;
-    }
 
     private void addNextEdge(int from, int to) {
         pkb.addNext(from, to);

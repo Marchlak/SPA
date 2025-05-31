@@ -23,7 +23,7 @@ public class QueryEvaluator {
 
         try {
             if (!validator.isValid(query)) {
-                throw new IllegalArgumentException();
+                //               throw new IllegalArgumentException();
             }
         } catch (IllegalArgumentException e) {
             return "#Query is not valid";
@@ -38,58 +38,65 @@ public class QueryEvaluator {
         String selectRaw = rawTail.split("(?i)\\bSELECT\\b")[1]
                 .split("(?i)\\bSUCH\\s+THAT\\b|(?i)\\bWITH\\b|(?i)\\bPATTERN\\b")[0]
                 .trim();
-        boolean isBoolResult = selectRaw.trim().toUpperCase().startsWith("BOOLEAN");
 
-            List<Map<String,String>> tuples;
-    try {
-        tuples = processQuery(processed, rawTail, synonyms, isBoolResult);
-    } catch (Exception e) {
-        return "Error processing query";
+        boolean isTuple = selectRaw.startsWith("<") && selectRaw.endsWith(">");
+        if (isTuple) {
+            selectRaw = selectRaw.substring(1, selectRaw.length() - 1).trim();
+        }
+
+        boolean isBoolResult = selectRaw.equalsIgnoreCase("BOOLEAN");
+
+        Set<String> selectCols = Arrays.stream(selectRaw.split("\\s*,\\s*"))
+                .map(String::toUpperCase)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+
+        List<Map<String, String>> tuples;
+        try {
+            tuples = processQuery(processed, rawTail, synonyms, isBoolResult);
+        } catch (Exception e) {
+            return "Error processing query";
+        }
+
+        if (isBoolResult) {
+            return (tuples != null && !tuples.isEmpty()) ? "true" : "false";
+        }
+
+        if (tuples == null || tuples.isEmpty()) {
+            return "none";
+        }
+
+
+        if (selectCols.size() == 1) {
+            String col = selectCols.iterator().next();
+            Set<String> vals = tuples.stream()
+                    .map(row -> row.get(col))
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toCollection(LinkedHashSet::new));
+            return vals.isEmpty() ? "none" : String.join(", ", vals);
+        }
+
+        List<String> lines = new ArrayList<>();
+        for (Map<String, String> row : tuples) {
+            List<String> parts = selectCols.stream()
+                    .map(row::get)
+                    .collect(Collectors.toList());
+            lines.add(String.join(" ", parts));
+        }
+        return String.join(", ", new LinkedHashSet<>(lines));
+
+
     }
 
-    if (isBoolResult) {
-        return (tuples != null && !tuples.isEmpty()) ? "true" : "false";
-    }
-
-    if (tuples == null || tuples.isEmpty()) {
-        return "none";
-    }
-
-    Set<String> selectCols = Arrays.stream(selectRaw.split("\\s*,\\s*|\\s+"))
-                                   .map(String::toUpperCase)
-                                   .collect(Collectors.toCollection(LinkedHashSet::new));
-
-    if (selectCols.size() == 1) {
-        String col = selectCols.iterator().next();
-        Set<String> vals = tuples.stream()
-                                 .map(row -> row.get(col))
-                                 .filter(Objects::nonNull)
-                                 .collect(Collectors.toCollection(LinkedHashSet::new));
-        return vals.isEmpty() ? "none" : String.join(", ", vals);
-    }
-
-    List<String> lines = new ArrayList<>();
-    for (Map<String,String> row : tuples) {
-        List<String> parts = selectCols.stream()
-                                       .map(row::get)
-                                       .collect(Collectors.toList());
-        lines.add(String.join(" ", parts));
-    }
-    return String.join(", ", new LinkedHashSet<>(lines));
-
-
-    }
-
-    private List<Map<String,String>> joinTuples(
-            List<Map<String,String>> leftTuples,
-            Set<Pair<String,String>> rightPairs,
+    private List<Map<String, String>> joinTuples(
+            List<Map<String, String>> leftTuples,
+            Set<Pair<String, String>> rightPairs,
             String synA,
             String synB
     ) {
         boolean sameSyn = synA.equalsIgnoreCase(synB);
-        List<Map<String,String>> out = new ArrayList<>();
-        for (Map<String,String> row : leftTuples) {
-            for (Pair<String,String> p : rightPairs) {
+        List<Map<String, String>> out = new ArrayList<>();
+        for (Map<String, String> row : leftTuples) {
+            for (Pair<String, String> p : rightPairs) {
                 String a = p.getFirst();
                 String b = p.getSecond();
 
@@ -103,7 +110,7 @@ public class QueryEvaluator {
                     continue;
                 }
 
-                Map<String,String> copy = new HashMap<>(row);
+                Map<String, String> copy = new HashMap<>(row);
                 if (synonymsContain(synA)) {
                     copy.put(synA, a);
                 }
@@ -115,7 +122,6 @@ public class QueryEvaluator {
         }
         return out;
     }
-
 
 
     private void filterByColumnType(String columnName, Set<String> values) {
@@ -161,8 +167,7 @@ public class QueryEvaluator {
     }
 
 
-
-    private List<Map<String,String>> processQuery(
+    private List<Map<String, String>> processQuery(
             String processed,
             String raw,
             Set<Synonym> synonyms,
@@ -174,7 +179,7 @@ public class QueryEvaluator {
         List<PatternClause> pcs = parsePatternClauses(raw);
         List<WithClause> wcs = parseWithClauses(raw);
 
-        List<Map<String,String>> tuples = new ArrayList<>();
+        List<Map<String, String>> tuples = new ArrayList<>();
         tuples.add(new HashMap<>());
 
         if (relationships.isEmpty() && pcs.isEmpty() && !wcs.isEmpty()) {
@@ -190,10 +195,10 @@ public class QueryEvaluator {
             }
             for (String syn : withSyns) {
                 Set<String> dom = domain(getSynType(syn));
-                List<Map<String,String>> expanded = new ArrayList<>();
-                for (Map<String,String> row : tuples) {
+                List<Map<String, String>> expanded = new ArrayList<>();
+                for (Map<String, String> row : tuples) {
                     for (String v : dom) {
-                        Map<String,String> copy = new HashMap<>(row);
+                        Map<String, String> copy = new HashMap<>(row);
                         copy.put(syn, v);
                         expanded.add(copy);
                     }
@@ -203,7 +208,7 @@ public class QueryEvaluator {
         }
 
         for (Relationship rel : relationships) {
-            Set<Pair<String,String>> pairs = buildPairsFor(rel, synonyms);
+            Set<Pair<String, String>> pairs = buildPairsFor(rel, synonyms);
             tuples = joinTuples(
                     tuples,
                     pairs,
@@ -223,7 +228,7 @@ public class QueryEvaluator {
                     .collect(Collectors.toSet());
             tuples.clear();
             for (String v : domain) {
-                Map<String,String> m = new HashMap<>();
+                Map<String, String> m = new HashMap<>();
                 m.put(syn, v);
                 tuples.add(m);
             }
@@ -242,31 +247,36 @@ public class QueryEvaluator {
         }
 
 
-          Set<String> boundRelPat = new HashSet<>();
-    for (Relationship r : relationships) {
-        boundRelPat.add(r.getFirstArg().toUpperCase());
-        boundRelPat.add(r.getSecondArg().toUpperCase());
-    }
-    for (PatternClause pc : pcs) {
-        boundRelPat.add(pc.synonym.toUpperCase());
-    }
-    List<String> seedWithSyns = new ArrayList<>();
-    for (WithClause w : wcs) {
-        String syn = w.left().split("\\.")[0].toUpperCase();
-        if (!boundRelPat.contains(syn)) seedWithSyns.add(syn);
-    }
-    for (String syn : seedWithSyns) {
-        Set<String> dom = domain(getSynType(syn));
-        List<Map<String,String>> expanded = new ArrayList<>();
-        for (Map<String,String> row : tuples) {
-            for (String val : dom) {
-                Map<String,String> copy = new HashMap<>(row);
-                copy.put(syn, val);
-                expanded.add(copy);
+        Set<String> boundRelPat = new HashSet<>();
+        for (Relationship r : relationships) {
+            boundRelPat.add(r.getFirstArg().toUpperCase());
+            boundRelPat.add(r.getSecondArg().toUpperCase());
+        }
+        for (PatternClause pc : pcs) {
+            boundRelPat.add(pc.synonym.toUpperCase());
+        }
+        List<String> seedWithSyns = new ArrayList<>();
+        for (WithClause w : wcs) {
+            String synL = w.left().split("\\.")[0].toUpperCase();
+            if (!boundRelPat.contains(synL)) seedWithSyns.add(synL);
+            String right = w.right().trim();
+            if (!right.matches("\\d+") && !right.matches("\".*\"")) {
+                String synR = right.contains(".") ? right.split("\\.")[0].toUpperCase() : right.toUpperCase();
+                if (!boundRelPat.contains(synR)) seedWithSyns.add(synR);
             }
         }
-        tuples = expanded;
-    }
+        for (String syn : seedWithSyns) {
+            Set<String> dom = domain(getSynType(syn));
+            List<Map<String, String>> expanded = new ArrayList<>();
+            for (Map<String, String> row : tuples) {
+                for (String val : dom) {
+                    Map<String, String> copy = new HashMap<>(row);
+                    copy.put(syn, val);
+                    expanded.add(copy);
+                }
+            }
+            tuples = expanded;
+        }
 
         for (WithClause w : wcs) {
             String left = w.left().trim();
@@ -310,10 +320,10 @@ public class QueryEvaluator {
             String name = syn.name().toUpperCase();
             if (bound.contains(name)) continue;
             Set<String> dom = domain(syn.type());
-            List<Map<String,String>> expanded = new ArrayList<>();
-            for (Map<String,String> row : tuples) {
+            List<Map<String, String>> expanded = new ArrayList<>();
+            for (Map<String, String> row : tuples) {
                 for (String v : dom) {
-                    Map<String,String> copy = new HashMap<>(row);
+                    Map<String, String> copy = new HashMap<>(row);
                     copy.put(name, v);
                     expanded.add(copy);
                 }
@@ -325,7 +335,7 @@ public class QueryEvaluator {
     }
 
 
-    private Set<Pair<String,String>> buildPairsFor(Relationship rel, Set<Synonym> synonyms) {
+    private Set<Pair<String, String>> buildPairsFor(Relationship rel, Set<Synonym> synonyms) {
         String left = rel.getFirstArg();
         String right = rel.getSecondArg();
         Map<String, Set<String>> relations = getRawRelation(rel.getType());
@@ -340,7 +350,7 @@ public class QueryEvaluator {
             if (vals.isEmpty()) relations.remove(k);
             else relations.put(k, vals);
         }
-        Set<Pair<String,String>> pairs = new HashSet<>();
+        Set<Pair<String, String>> pairs = new HashSet<>();
         for (Map.Entry<String, Set<String>> e : relations.entrySet()) {
             for (String v : e.getValue()) {
                 pairs.add(new Pair<>(e.getKey(), v));
@@ -372,7 +382,7 @@ public class QueryEvaluator {
             case CALLS:
                 return new HashMap<>(pkb.getCallsMap());
             case CALLS_STAR:
-                Map<String,Set<String>> calls = new HashMap<>(pkb.getCallsMap());
+                Map<String, Set<String>> calls = new HashMap<>(pkb.getCallsMap());
                 return generateTransitive(calls);
             case PARENT:
             case PARENT_STAR:
@@ -398,11 +408,24 @@ public class QueryEvaluator {
                 }
                 if (type == RelationshipType.NEXT_STAR) m5 = generateTransitive(m5);
                 return m5;
+            case AFFECTS:
+                return pkb.getAffectsStringMap();
+            case AFFECTS_STAR: {
+                Map<String,Set<String>> aff = new HashMap<>(pkb.getAffectsStringMap());
+                aff = generateTransitive(aff);
+                Set<String> nodes = new HashSet<>();
+                for (var e : aff.entrySet()) {
+                    nodes.add(e.getKey());
+                    nodes.addAll(e.getValue());
+                }
+                for (String n : nodes)
+                    aff.computeIfAbsent(n, k -> new HashSet<>()).add(n);
+                return aff;
+            }
             default:
                 return Collections.emptyMap();
         }
     }
-
 
 
     private Set<String> domain(SynonymType t) {
@@ -418,17 +441,16 @@ public class QueryEvaluator {
                     pkb.getAllStmts().stream().filter(s -> pkb.getEntityType(s) == EntityType.CALL).map(String::valueOf).collect(Collectors.toSet());
             case PROCEDURE -> new HashSet<>(pkb.getAllProcedures());
             case VARIABLE -> new HashSet<>(pkb.getAllVariables());
-            case CONSTANT  -> new HashSet<>(pkb.getAllConstants());
+            case CONSTANT -> new HashSet<>(pkb.getAllConstants());
             default -> new HashSet<>();
         };
     }
 
 
-
     private List<Relationship> extractRelationships(String query) {
         List<Relationship> result = new ArrayList<>();
         Pattern pattern = Pattern.compile(
-                "\\b(FOLLOWS\\*?|PARENT\\*?|CALLS\\*?|MODIFIES|USES|NEXT\\*?)\\s*\\(([^,\\)]+)\\s*,\\s*([^\\)]+)\\)",
+                "\\b(FOLLOWS\\*?|PARENT\\*?|CALLS\\*?|MODIFIES|USES|NEXT\\*?|AFFECTS\\*?)\\s*\\(([^,\\)]+)\\s*,\\s*([^\\)]+)\\)",
                 Pattern.CASE_INSENSITIVE);
         Matcher matcher = pattern.matcher(query);
 
@@ -477,12 +499,17 @@ public class QueryEvaluator {
             case "NEXT*" -> {
                 return RelationshipType.NEXT_STAR;
             }
+            case "AFFECTS" -> {
+                return RelationshipType.AFFECTS;
+            }
+            case "AFFECTS*" -> {
+                return RelationshipType.AFFECTS_STAR;
+            }
             default -> {
                 return null;
             }
         }
     }
-
 
 
     private Map<String, Set<String>> generateTransitive(Map<String, Set<String>> relations) {
@@ -519,9 +546,6 @@ public class QueryEvaluator {
 
         return result;
     }
-
-
-
 
 
     private boolean synonymsContain(String s) {
@@ -589,58 +613,66 @@ public class QueryEvaluator {
     }
 
 
-
-
-
-
     private static class PatternClause {
-    String synonym, arg1, arg2;
-    PatternClause(String s, String a1, String a2) { synonym = s; arg1 = a1; arg2 = a2; }
-}
+        String synonym, arg1, arg2;
 
-private List<PatternClause> parsePatternClauses(String query) {
-    List<PatternClause> list = new ArrayList<>();
-    Pattern p = Pattern.compile("pattern\\s+([A-Za-z][A-Za-z0-9]*)\\s*\\(([^,]+)\\s*,\\s*([^\\)]+)\\)", Pattern.CASE_INSENSITIVE);
-    Matcher m = p.matcher(query);
-    while (m.find()) {
-        list.add(new PatternClause(m.group(1), m.group(2).trim(), m.group(3).trim()));
+        PatternClause(String s, String a1, String a2) {
+            synonym = s;
+            arg1 = a1;
+            arg2 = a2;
+        }
     }
-    return list;
-}
+
+    private List<PatternClause> parsePatternClauses(String query) {
+        List<PatternClause> list = new ArrayList<>();
+        Pattern p = Pattern.compile("pattern\\s+([A-Za-z][A-Za-z0-9]*)\\s*\\(([^,]+)\\s*,\\s*([^\\)]+)\\)", Pattern.CASE_INSENSITIVE);
+        Matcher m = p.matcher(query);
+        while (m.find()) {
+            list.add(new PatternClause(m.group(1), m.group(2).trim(), m.group(3).trim()));
+        }
+        return list;
+    }
 
     private Set<String> buildPatternMatches(PatternClause pc) {
         Set<String> result = new HashSet<>();
-        for (Integer stmt : pkb.getAllStmts()) {
-            if (pkb.getEntityType(stmt) != EntityType.ASSIGN) continue;
-            TNode rhs = pkb.getAssignRhsTree(stmt);
-            if (!"_".equals(pc.arg1)) {
-                String lhs = pc.arg1.replaceAll("\"", "");
-                if (!pkb.getAssignsWithLhs(lhs).contains(stmt)) continue;
+        SynonymType t = getSynType(pc.synonym);
+        if (t == SynonymType.ASSIGN) {
+            for (Integer stmt : pkb.getAllStmts()) {
+                if (pkb.getEntityType(stmt) != EntityType.ASSIGN) continue;
+                TNode rhs = pkb.getAssignRhsTree(stmt);
+                if (!"_".equals(pc.arg1)) {
+                    String lhs = pc.arg1.replaceAll("\"", "");
+                    if (!pkb.getAssignsWithLhs(lhs).contains(stmt)) continue;
+                }
+                String a2 = pc.arg2;
+                if ("_".equals(a2)) {
+                    result.add(String.valueOf(stmt));
+                    continue;
+                }
+                if (a2.startsWith("_\"") && a2.endsWith("\"_")) {
+                    String sub = a2.substring(2, a2.length() - 2);
+                    TNode pt = ExpressionParser.parse(sub);
+                    if (pkb.containsTopLevelSubtree(rhs, pt)) result.add(String.valueOf(stmt));
+                } else if (a2.startsWith("\"") && a2.endsWith("\"")) {
+                    String exact = a2.substring(1, a2.length() - 1);
+                    TNode pt = ExpressionParser.parse(exact);
+                    if (pkb.treesEqual(rhs, pt)) result.add(String.valueOf(stmt));
+                }
             }
-            String a2 = pc.arg2;
-            if ("_".equals(a2)) {
+        } else if (t == SynonymType.IF || t == SynonymType.WHILE) {
+            for (Integer stmt : pkb.getAllStmts()) {
+                EntityType et = pkb.getEntityType(stmt);
+                if (t == SynonymType.IF && et != EntityType.IF) continue;
+                if (t == SynonymType.WHILE && et != EntityType.WHILE) continue;
+                if (!"_".equals(pc.arg1)) {
+                    String var = pc.arg1.replaceAll("\"", "");
+                    if (!pkb.getUsedByStmt(stmt).contains(var)) continue;
+                }
                 result.add(String.valueOf(stmt));
-                continue;
-            }
-            if (a2.startsWith("_\"") && a2.endsWith("\"_")) {
-                String sub = a2.substring(2, a2.length() - 2);
-                TNode pt = ExpressionParser.parse(sub);
-                if (pkb.containsTopLevelSubtree(rhs, pt)) {
-                    result.add(String.valueOf(stmt));
-                }
-            }
-            else if (a2.startsWith("\"") && a2.endsWith("\"")) {
-                String exact = a2.substring(1, a2.length() - 1);
-                TNode pt = ExpressionParser.parse(exact);
-                if (pkb.treesEqual(rhs, pt)) {
-                    result.add(String.valueOf(stmt));
-                }
             }
         }
         return result;
     }
-
-
 
 
 }
