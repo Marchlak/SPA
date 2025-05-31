@@ -206,6 +206,26 @@ public class DesignExtractor {
         });
     }
 
+    private boolean isStmtNode(EntityType t) {
+        return t == EntityType.ASSIGN
+                || t == EntityType.CALL
+                || t == EntityType.IF
+                || t == EntityType.WHILE;
+    }
+
+    private boolean hasNextStmtSibling(TNode n) {
+        TNode cur = n;
+        while (true) {
+            TNode sib = cur.getRightSibling();
+            if (sib != null && isStmtNode(sib.getType())) return true;
+            TNode list = cur.getParent();
+            if (list == null) return false;
+            TNode owner = list.getParent();
+            if (owner == null || owner.getType() != EntityType.IF) return false;
+            cur = owner;
+        }
+    }
+
     private void processIf(TNode ifNode, int ifStmtNr) {
         TNode cond = ifNode.getFirstChild();
         collectConstants(cond);
@@ -235,18 +255,21 @@ public class DesignExtractor {
         addNextEdge(ifStmtNr, thenStart);
         addNextEdge(ifStmtNr, elseStart);
 
-        if (ifNode.getRightSibling() != null) {          // w stmtList jest coś po IF
-            final int nextNum = currentStmtNumber;       // numer pierwszej instrukcji po IF
+        if (hasNextStmtSibling(ifNode)) {
+            final int nextNum = currentStmtNumber;
             pendingAfterIfEnds
                     .computeIfAbsent(elseEnd, k -> new ArrayList<>())
                     .add(() -> {
-                        addNextEdge(thenEnd, nextNum);   // 42 → 45
-                        addNextEdge(elseEnd, nextNum);   // 44 → 45
+                        addNextEdge(thenEnd, nextNum);
+                        addNextEdge(elseEnd, nextNum);
                     });
-        } else {                                         // IF zamyka stmtList
+        } else {
             Integer enclosingWhile = null;
             for (Integer anc : parentStack) {
-                if (pkb.getEntityType(anc) == EntityType.WHILE) { enclosingWhile = anc; break; }
+                if (pkb.getEntityType(anc) == EntityType.WHILE) {
+                    enclosingWhile = anc;
+                    break;
+                }
             }
             if (enclosingWhile != null) {
                 addNextEdge(thenEnd, enclosingWhile);
