@@ -70,6 +70,7 @@ public class Main {
 
             PKB pkb = new PKB();
             new DesignExtractor(pkb).extract(ast);
+
             QueryEvaluator evaluator = new QueryEvaluator(pkb);
 
             List<String> lines = Files.readAllLines(Paths.get(queryFile));
@@ -117,7 +118,7 @@ public class Main {
     }
 
     public static void main(String[] args) {
-      //  testRun(args);
-        defaultRun(args);
+        testRun(args);
+        //defaultRun(args);
     }
 }

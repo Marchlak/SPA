@@ -12,6 +12,7 @@ public class DesignExtractor {
     private String currentProcedure;
     private final Map<Integer, Set<Integer>> cfg = new HashMap<>();
     private final Map<Integer, List<Runnable>> pendingAfterIfEnds = new HashMap<>();
+    private final Map<Integer, List<Runnable>> pendingAfterLoops = new HashMap<>();
 
     public DesignExtractor(PKB pkb) {
         this.pkb = pkb;
@@ -32,33 +33,19 @@ public class DesignExtractor {
     private void processProcedure(TNode procNode) {
         currentProcedure = procNode.getAttr().replace("\"", "");
         pkb.addProcedure(currentProcedure);
+
         TNode stmtList = procNode.getFirstChild();
         processStmtList(stmtList);
+
+        /* --- KONIEC PROCEDURY → czyścimy zaległe hooki --- */
+        pendingAfterIfEnds.clear();
+        pendingAfterLoops.clear();
+        pendingWhileFalse.clear();   // <-- klucz do zniknięcia 191→209
+
+        parentStack.clear();         // porządek, gdyby coś zostało
         currentProcedure = null;
     }
 
-    private void processStmtList(TNode stmtListNode) {
-        TNode stmt = stmtListNode.getFirstChild();
-        Integer prev = null;
-
-        while (stmt != null) {
-            int curr = currentStmtNumber++;
-            pkb.addStmt(curr, stmt.getType());
-
-            if (!parentStack.isEmpty()) pkb.setParent(parentStack.peek(), curr);
-            if (prev != null) {
-                pkb.setFollows(prev, curr);
-                addNextEdge(prev, curr);
-            }
-            prev = curr;
-
-            List<Runnable> hooks = pendingAfterIfEnds.remove(curr - 1);
-            if (hooks != null) hooks.forEach(Runnable::run);
-
-            processStmt(stmt, curr);
-            stmt = stmt.getRightSibling();
-        }
-    }
 
 
     private void processStmt(TNode stmt, int stmtNumber) {
@@ -104,46 +91,86 @@ public class DesignExtractor {
             if (currentProcedure != null) {
                 pkb.setUsesProc(currentProcedure, usedVar);
             }
-            // Propagate to parent containers
             if (!parentStack.isEmpty()) {
                 pkb.propagateUsesToParent(stmtNumber, usedVar);
             }
         }
     }
 
+
+    private final List<Integer> pendingWhileFalse = new ArrayList<>();
+
+    private void processStmtList(TNode stmtListNode) {
+        TNode stmt = stmtListNode.getFirstChild();
+        Integer prev = null;
+        while (stmt != null) {
+            int curr = currentStmtNumber++;
+            for (int h : pendingWhileFalse) addNextEdge(h, curr);
+            pendingWhileFalse.clear();
+            pkb.addStmt(curr, stmt.getType());
+            if (!parentStack.isEmpty()) pkb.setParent(parentStack.peek(), curr);
+            if (prev != null) {
+                pkb.setFollows(prev, curr);
+                addNextEdge(prev, curr);
+            }
+            prev = curr;
+
+            List<Runnable> hooks = pendingAfterIfEnds.remove(curr - 1);   // ← zostaje
+            if (hooks != null) hooks.forEach(Runnable::run);
+
+            hooks = pendingAfterLoops.remove(curr - 1);                   // ← zostaje
+            if (hooks != null) hooks.forEach(Runnable::run);
+
+            processStmt(stmt, curr);
+            stmt = stmt.getRightSibling();
+        }
+
+        if (prev != null) {
+            /* ---- na końcu listy uruchamiamy TYLKO hooki od pętli ---- */
+            List<Runnable> loopHooks = pendingAfterLoops.remove(prev);
+            if (loopHooks != null) loopHooks.forEach(Runnable::run);
+        }
+    }
+
     private void processWhile(TNode whileNode, int whileNr) {
         TNode cond = whileNode.getFirstChild();
-
         collectConstants(cond);
-        Set<String> condVars = extractVariablesFromNode(cond);
-
-        pkb.setWhileControlVars(whileNr, condVars);
-
-        for (String v : condVars) {
+        Set<String> cv = extractVariablesFromNode(cond);
+        pkb.setWhileControlVars(whileNr, cv);
+        for (String v : cv) {
             pkb.addVariable(v);
             pkb.setUsesStmt(whileNr, v);
-
-            if (currentProcedure != null) {
-                pkb.setUsesProc(currentProcedure, v);
-            }
-
-            if (!parentStack.isEmpty()) {
-                pkb.propagateUsesToParent(whileNr, v);
-            }
+            if (currentProcedure != null) pkb.setUsesProc(currentProcedure, v);
+            if (!parentStack.isEmpty()) pkb.propagateUsesToParent(whileNr, v);
         }
 
         parentStack.push(whileNr);
-
         TNode body = cond.getRightSibling();
         int firstInBody = currentStmtNumber;
-
         processStmtList(body);
-
         int lastInBody = currentStmtNumber - 1;
         parentStack.pop();
 
-        addNextEdge(whileNr, firstInBody);
-        addNextEdge(lastInBody, whileNr);
+        addNextEdge(whileNr, firstInBody);      // TRUE-wejście
+        addNextEdge(lastInBody, whileNr);       // TRUE-powrót
+
+        /* ---- FAŁSZ ---- */
+        if (whileNode.getRightSibling() != null) {            // są instrukcje po pętli
+            final int nextNum = currentStmtNumber;            // następny stmt już znany
+            pendingAfterLoops
+                    .computeIfAbsent(lastInBody, k -> new ArrayList<>())
+                    .add(() -> addNextEdge(whileNr, nextNum));
+        } else {                                              // ostatni w stmtList
+            Integer enclosingWhile = null;
+            for (Integer anc : parentStack) {                 // najbliższa zewn. pętla
+                if (pkb.getEntityType(anc) == EntityType.WHILE) { enclosingWhile = anc; break; }
+            }
+            if (enclosingWhile != null) {                     // fałsz → nagłówek tej pętli
+                addNextEdge(whileNr, enclosingWhile);
+            }
+        /* brak hooka: jeśli to koniec bloku IF/PROCEDURE,
+           gałąź FALSE połączy pendingAfterIfEnds lub nic */
+        }
     }
 
     private void processCall(TNode callNode, int stmtNumber) {
@@ -178,16 +205,13 @@ public class DesignExtractor {
             }
         });
     }
-    private void processIf(TNode ifNode, int ifStmtNr) {
 
+    private void processIf(TNode ifNode, int ifStmtNr) {
         TNode cond = ifNode.getFirstChild();
         collectConstants(cond);
-        Set<String> condVars = extractVariablesFromCond(cond);
-
-
-        pkb.setIfControlVars(ifStmtNr, condVars);
-
-        for (String v : extractVariablesFromCond(cond)) {
+        Set<String> cv = extractVariablesFromCond(cond);
+        pkb.setIfControlVars(ifStmtNr, cv);
+        for (String v : cv) {
             pkb.addVariable(v);
             pkb.setUsesStmt(ifStmtNr, v);
             if (currentProcedure != null) pkb.setUsesProc(currentProcedure, v);
@@ -195,29 +219,40 @@ public class DesignExtractor {
         }
 
         parentStack.push(ifStmtNr);
-        TNode thenList  = cond.getRightSibling();
-        TNode elseList  = thenList.getRightSibling();
+        TNode thenList = cond.getRightSibling();
+        TNode elseList = thenList.getRightSibling();
 
-        int thenStart  = currentStmtNumber;
+        int thenStart = currentStmtNumber;
         processStmtList(thenList);
-        int thenEnd    = currentStmtNumber - 1;
+        int thenEnd = currentStmtNumber - 1;
 
-        int elseStart  = currentStmtNumber;
+        int elseStart = currentStmtNumber;
         processStmtList(elseList);
-        int elseEnd    = currentStmtNumber - 1;
+        int elseEnd = currentStmtNumber - 1;
 
         parentStack.pop();
 
         addNextEdge(ifStmtNr, thenStart);
         addNextEdge(ifStmtNr, elseStart);
 
-
-        pendingAfterIfEnds
-                .computeIfAbsent(thenEnd, k -> new ArrayList<>())
-                .add(() -> addNextEdge(thenEnd, currentStmtNumber));
-        pendingAfterIfEnds
-                .computeIfAbsent(elseEnd, k -> new ArrayList<>())
-                .add(() -> addNextEdge(elseEnd, currentStmtNumber));
+        if (ifNode.getRightSibling() != null) {          // w stmtList jest coś po IF
+            final int nextNum = currentStmtNumber;       // numer pierwszej instrukcji po IF
+            pendingAfterIfEnds
+                    .computeIfAbsent(elseEnd, k -> new ArrayList<>())
+                    .add(() -> {
+                        addNextEdge(thenEnd, nextNum);   // 42 → 45
+                        addNextEdge(elseEnd, nextNum);   // 44 → 45
+                    });
+        } else {                                         // IF zamyka stmtList
+            Integer enclosingWhile = null;
+            for (Integer anc : parentStack) {
+                if (pkb.getEntityType(anc) == EntityType.WHILE) { enclosingWhile = anc; break; }
+            }
+            if (enclosingWhile != null) {
+                addNextEdge(thenEnd, enclosingWhile);
+                addNextEdge(elseEnd, enclosingWhile);
+            }
+        }
     }
 
     private Set<String> extractVariablesFromNode(TNode node) {
@@ -226,12 +261,10 @@ public class DesignExtractor {
             return variables;
         }
 
-        // Check if current node is a variable
         if (node.getType() == EntityType.VARIABLE) {
             variables.add(node.getAttr());
         }
 
-        // Recursively check children
         TNode child = node.getFirstChild();
         while (child != null) {
             variables.addAll(extractVariablesFromNode(child));
@@ -251,7 +284,6 @@ public class DesignExtractor {
             if (current.getType() == EntityType.VARIABLE) {
                 variables.add(current.getAttr());
             }
-            // Add children to stack (right to left for correct order)
             TNode child = current.getRightSibling();
             while (child != null) {
                 stack.push(child);
@@ -262,12 +294,10 @@ public class DesignExtractor {
     }
 
     private Set<String> extractVariablesFromCond(TNode condNode) {
-        // For simplicity, assuming conditions are similar to expressions
         return extractVariablesFromExpr(condNode);
     }
 
     private void propagateCallModifies() {
-        // Najpierw przetwórz bezpośrednie wywołania
         for (Integer stmt : pkb.getAllCallStmts()) {
             String proc = pkb.getCalledProcByStmt(stmt);
             for (String var : pkb.getModifiedByProc(proc)) {
@@ -276,7 +306,6 @@ public class DesignExtractor {
             }
         }
 
-        // Następnie przetwórz wywołania rekurencyjnie
         boolean changed;
         do {
             changed = false;

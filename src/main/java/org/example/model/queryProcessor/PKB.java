@@ -67,16 +67,6 @@ public Set<String> getAllConstants() { return new HashSet<>(constants); }
         whileControlVars.put(stmt, vars);
     }
 
-    public Set<String> getWhileControlVars(int stmt) {
-        return whileControlVars.getOrDefault(stmt, Set.of());
-    }
-    public Set<Integer> getStmtsUsingVar(String varName) {
-        return varToStmtsUsingIt.getOrDefault(varName, new HashSet<>());
-    }
-
-    public Set<String> getVarsUsedInProc(String procName) {
-        return procToVarsUsedInIt.getOrDefault(procName, new HashSet<>());
-    }
 
     public void setCallStmt(int stmt, String proc) {
         callStmtToProc.put(stmt, proc);
@@ -115,62 +105,19 @@ public Set<String> getAllConstants() { return new HashSet<>(constants); }
         childrenMap.computeIfAbsent(parent, k -> new HashSet<>()).add(child);
     }
 
-    public int getParent(int child) {
-        return parentMap.getOrDefault(child, -1);
-    }
 
     public Map<Integer, Integer> getParentMap() {
         return parentMap;
     }
 
-    public Set<Integer> getParentStar(int child) {
-        if (!parentStarCache.containsKey(child)) {
-            Set<Integer> ancestors = new HashSet<>();
-            int current = child;
-            while (parentMap.containsKey(current)) {
-                current = parentMap.get(current);
-                ancestors.add(current);
-            }
-            parentStarCache.put(child, ancestors);
-        }
-        return parentStarCache.get(child);
-    }
 
     public Map<Integer, Set<Integer>> getParentStarMap() {
         return parentStarCache;
     }
 
-    public Set<Integer> getParentedBy(int parent) {
-        return childrenMap.getOrDefault(parent, new HashSet<>());
-    }
-
-    public Set<Integer> getParentedStarBy(int parent) {
-        if (!descendantCache.containsKey(parent)) {
-            computeDescendants(parent);
-        }
-        return new HashSet<>(descendantCache.get(parent));
-    }
 
     public void setIfControlVars(int stmt, Set<String> vars){
         ifControlVars.put(stmt, vars);
-    }
-    public Set<String> getIfControlVars(int stmt){
-        return ifControlVars.getOrDefault(stmt, Set.of());
-    }
-
-    private void computeDescendants(int parent) {
-        Set<Integer> descendants = new HashSet<>();
-        Deque<Integer> queue = new ArrayDeque<>();
-        queue.add(parent);
-        while (!queue.isEmpty()) {
-            int current = queue.poll();
-            for (int child : childrenMap.getOrDefault(current, new HashSet<>())) {
-                if (descendants.add(child)) {
-                    queue.add(child);
-                }
-            }
-        }
-        descendantCache.put(parent, descendants);
     }
 
     public void setFollows(int predecessor, int successor) {
@@ -184,43 +131,7 @@ public Set<String> getAllConstants() { return new HashSet<>(constants); }
         return followsMap;
     }
 
-    public Integer getFollows(int stmt) {
-        return followsMap.get(stmt);
-    }
 
-    public Map<Integer, Integer> getAllFollowedBy() {
-        return followedByMap;
-    }
-
-    public Integer getFollowedBy(int stmt) {
-        return followedByMap.get(stmt);
-    }
-
-    public Set<Integer> getFollowsStar(int stmt) {
-        if (!followsStarCache.containsKey(stmt)) {
-            Set<Integer> followers = new HashSet<>();
-            Integer current = followsMap.get(stmt);
-            while (current != null) {
-                followers.add(current);
-                current = followsMap.get(current);
-            }
-            followsStarCache.put(stmt, followers);
-        }
-        return new HashSet<>(followsStarCache.get(stmt));
-    }
-
-    public Set<Integer> getFollowedByStar(int stmt) {
-        if (!followedByStarCache.containsKey(stmt)) {
-            Set<Integer> predecessors = new HashSet<>();
-            Integer current = followedByMap.get(stmt);
-            while (current != null) {
-                predecessors.add(current);
-                current = followedByMap.get(current);
-            }
-            followedByStarCache.put(stmt, predecessors);
-        }
-        return new HashSet<>(followedByStarCache.get(stmt));
-    }
 
     public void setModifiesStmt(int stmt, String var) {
         modifiesStmt.computeIfAbsent(stmt, k -> new HashSet<>()).add(var);
@@ -328,94 +239,6 @@ public Set<String> getAllConstants() { return new HashSet<>(constants); }
     }
 
 
-public void printState() {
-    System.out.println("=== PKB State ===");
-
-    // parentMap: child -> parent
-    System.out.println("Parent map (child -> parent):");
-    for (Map.Entry<Integer, Integer> entry : parentMap.entrySet()) {
-        System.out.println("  " + entry.getKey() + " -> " + entry.getValue());
-    }
-    System.out.println();
-
-    // parentStarCache: child -> set of all ancestors
-    System.out.println("Parent* cache (child -> ancestors):");
-    for (Map.Entry<Integer, Set<Integer>> entry : parentStarCache.entrySet()) {
-        System.out.println("  " + entry.getKey() + " -> " + entry.getValue());
-    }
-    System.out.println();
-
-    // childrenMap: parent -> set of direct children
-    System.out.println("Children map (parent -> children):");
-    for (Map.Entry<Integer, Set<Integer>> entry : childrenMap.entrySet()) {
-        System.out.println("  " + entry.getKey() + " -> " + entry.getValue());
-    }
-    System.out.println();
-
-    // followsMap: stmt -> immediate follower
-    // System.out.println("Follows map (stmt -> next stmt):");
-    // for (Map.Entry<Integer, Integer> entry : followsMap.entrySet()) {
-    //     System.out.println("  " + entry.getKey() + " -> " + entry.getValue());
-    // }
-    // System.out.println();
-    //
-    // // followedByMap: stmt -> statement that comes before it
-    // System.out.println("FollowedBy map (stmt -> previous stmt):");
-    // for (Map.Entry<Integer, Integer> entry : followedByMap.entrySet()) {
-    //     System.out.println("  " + entry.getKey() + " -> " + entry.getValue());
-    // }
-    // System.out.println();
-    //
-    // // modifiesStmt: stmt -> set of variables
-    // System.out.println("Modifies (stmt -> variables):");
-    // for (Map.Entry<Integer, Set<String>> entry : modifiesStmt.entrySet()) {
-    //     System.out.println("  " + entry.getKey() + " -> " + entry.getValue());
-    // }
-    // System.out.println();
-    //
-    // // modifiesProc: procName -> set of variables
-    // System.out.println("Modifies (procedure -> variables):");
-    // for (Map.Entry<String, Set<String>> entry : modifiesProc.entrySet()) {
-    //     System.out.println("  " + entry.getKey() + " -> " + entry.getValue());
-    // }
-    // System.out.println();
-    //
-    // // usesStmt: stmt -> set of variables
-    // System.out.println("Uses (stmt -> variables):");
-    // for (Map.Entry<Integer, Set<String>> entry : usesStmt.entrySet()) {
-    //     System.out.println("  " + entry.getKey() + " -> " + entry.getValue());
-    // }
-    // System.out.println();
-    //
-    // // usesProc: procName -> set of variables
-    // System.out.println("Uses (procedure -> variables):");
-    // for (Map.Entry<String, Set<String>> entry : usesProc.entrySet()) {
-    //     System.out.println("  " + entry.getKey() + " -> " + entry.getValue());
-    // }
-    // System.out.println();
-    //
-    // // stmtTypeMap: stmt -> EntityType (ASSIGN, WHILE, IF, etc.)
-    // System.out.println("Statement types (stmt -> EntityType):");
-    // for (Map.Entry<Integer, EntityType> entry : stmtTypeMap.entrySet()) {
-    //     System.out.println("  " + entry.getKey() + " -> " + entry.getValue());
-    // }
-    // System.out.println();
-    //
-    // // procedures: set of procedure names
-    // System.out.println("Procedures (set of all procedure names):");
-    // for (String procName : procedures) {
-    //     System.out.println("  " + procName);
-    // }
-    // System.out.println();
-
-    // Możesz dodać analogiczne sekcje dla followsStarCache, followedByStarCache, itp.
-    // w zależności od tego, co przechowujesz w PKB.
-    // Przykładowo:
-    // System.out.println("Follows* cache (stmt -> set of all next stmts):");
-    // for (Map.Entry<Integer, Set<Integer>> entry : followsStarCache.entrySet()) {
-    //     System.out.println("  " + entry.getKey() + " -> " + entry.getValue());
-    // }
-}
 
     public void setCalls(String caller, String callee) {
         callsMap.computeIfAbsent(caller, k -> new HashSet<>()).add(callee);

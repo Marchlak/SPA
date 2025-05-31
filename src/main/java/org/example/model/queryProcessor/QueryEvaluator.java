@@ -47,23 +47,18 @@ public class QueryEvaluator {
         return "Error processing query";
     }
 
-    // boolean
     if (isBoolResult) {
         return (tuples != null && !tuples.isEmpty()) ? "true" : "false";
     }
 
-    // non-boolean
     if (tuples == null || tuples.isEmpty()) {
         return "none";
     }
 
-    // przygotowujemy set synonimów które SELECTujemy:
     Set<String> selectCols = Arrays.stream(selectRaw.split("\\s*,\\s*|\\s+"))
                                    .map(String::toUpperCase)
                                    .collect(Collectors.toCollection(LinkedHashSet::new));
 
-    // robimy projekcję:
-    // jeśli jest tylko jeden synonim w SELECT, wypiszemy wszystkie jego wartości
     if (selectCols.size() == 1) {
         String col = selectCols.iterator().next();
         Set<String> vals = tuples.stream()
@@ -73,7 +68,6 @@ public class QueryEvaluator {
         return vals.isEmpty() ? "none" : String.join(", ", vals);
     }
 
-    // jeśli SELECT zawiera wiele synonimów, dla każdej krotki łączymy jej wartości:
     List<String> lines = new ArrayList<>();
     for (Map<String,String> row : tuples) {
         List<String> parts = selectCols.stream()
@@ -99,7 +93,6 @@ public class QueryEvaluator {
                 String a = p.getFirst();
                 String b = p.getSecond();
 
-                // if they used the same synonym on both sides, only keep (x,x)
                 if (sameSyn && !a.equals(b)) {
                     continue;
                 }
@@ -111,7 +104,6 @@ public class QueryEvaluator {
                 }
 
                 Map<String,String> copy = new HashMap<>(row);
-                // put them in the map (they may overwrite, but if a==b it doesn't matter)
                 if (synonymsContain(synA)) {
                     copy.put(synA, a);
                 }
@@ -176,21 +168,16 @@ public class QueryEvaluator {
             Set<Synonym> synonyms,
             boolean isBool
     ) {
-        // extract clauses
-        // gdzieś w kodzie roboczo:
 
 
         List<Relationship> relationships = extractRelationships(processed);
         List<PatternClause> pcs = parsePatternClauses(raw);
         List<WithClause> wcs = parseWithClauses(raw);
 
-        // start with one empty tuple
         List<Map<String,String>> tuples = new ArrayList<>();
         tuples.add(new HashMap<>());
 
-        // for queries with only WITH clauses, seed domains
         if (relationships.isEmpty() && pcs.isEmpty() && !wcs.isEmpty()) {
-            // determine all synonyms used in WITH
             LinkedHashSet<String> withSyns = new LinkedHashSet<>();
             for (WithClause w : wcs) {
                 String[] lp = w.left().split("\\.");
@@ -201,7 +188,6 @@ public class QueryEvaluator {
                     withSyns.add(rp[0].toUpperCase());
                 }
             }
-            // cross-product over domains of each WITH synonym
             for (String syn : withSyns) {
                 Set<String> dom = domain(getSynType(syn));
                 List<Map<String,String>> expanded = new ArrayList<>();
@@ -216,7 +202,6 @@ public class QueryEvaluator {
             }
         }
 
-        // apply relational clauses
         for (Relationship rel : relationships) {
             Set<Pair<String,String>> pairs = buildPairsFor(rel, synonyms);
             tuples = joinTuples(
@@ -230,7 +215,6 @@ public class QueryEvaluator {
             }
         }
 
-        // seed tuples for pattern-only queries
         if (relationships.isEmpty() && !pcs.isEmpty()) {
             String syn = pcs.get(0).synonym.toUpperCase();
             Set<String> domain = pkb.getAllStmts().stream()
@@ -245,7 +229,6 @@ public class QueryEvaluator {
             }
         }
 
-        // apply pattern clauses
         for (PatternClause pc : pcs) {
             Set<String> matches = buildPatternMatches(pc);
             String syn = pc.synonym.toUpperCase();
@@ -285,7 +268,6 @@ public class QueryEvaluator {
         tuples = expanded;
     }
 
-        // apply WITH clauses
         for (WithClause w : wcs) {
             String left = w.left().trim();
             String right = w.right().trim();
@@ -310,7 +292,6 @@ public class QueryEvaluator {
             if (tuples.isEmpty()) break;
         }
 
-        // expand unbound synonyms
         Set<String> bound = new HashSet<>();
         for (Relationship r : relationships) {
             bound.add(r.getFirstArg().toUpperCase());
@@ -539,55 +520,6 @@ public class QueryEvaluator {
         return result;
     }
 
-    /**
-     * Universal method for handling relation
-     *
-     * @param left Left synonim of the relation like "s" or "3".
-     * @param right Right synonim of the relation like "w".
-     * @param relations Map symbolising the relation like { "1" = ["2", "3"], "4" = ["5"] }
-     * @return Map with the result of that relation like { "w" = ["10"], "s" = [] }
-     */
-    private Map<String, Set<String>> handleRelation(String left, String right, Map<String, Set<String>> relations) {
-        Map<String, Set<String>> partialSolutions = new HashMap<>();
-
-        //When left is synonim filter relations keys by their type
-        if (synonymsContain(left)) {
-            Set<String> keys = relations.keySet();
-            filterByColumnType(left, keys);
-            relations.keySet().removeIf(k -> !keys.contains(k));
-        }
-        else if (Objects.equals(left, "_")) { }
-        //When left is numeral filter relations keys - must have same number
-        else {
-            relations.keySet().removeIf(k -> !k.equals(left.replace("\"", "")));
-        }
-
-        //When right is synonim type filter values by their type
-        if (synonymsContain(right)) {
-            for (Map.Entry<String, Set<String>> entry : relations.entrySet()) {
-                Set<String> modifiableValues = new HashSet<>(entry.getValue());
-
-                filterByColumnType(right, modifiableValues);
-                entry.setValue(modifiableValues);
-            }
-        }
-        else if (Objects.equals(right, "_")) { }
-        //When right is numeral type values for keys must have same number
-        else {
-            for (Map.Entry<String, Set<String>> entry : relations.entrySet()) {
-
-                Set<String> modifiableValues = new HashSet<>(entry.getValue());
-
-                modifiableValues.removeIf(k -> !k.equals(right.replace("\"", "")));
-                entry.setValue(modifiableValues);
-            }
-        }
-        relations.entrySet().removeIf(entry -> entry.getValue().isEmpty());
-        partialSolutions.put("arg0", relations.keySet());
-        partialSolutions.put("arg1", relations.values().stream().flatMap(Collection::stream).collect(Collectors.toSet()));
-
-        return partialSolutions;
-    }
 
 
 
@@ -611,19 +543,12 @@ public class QueryEvaluator {
     }
 
 
-    // --- replace the old method entirely -------------------------------
     private List<WithClause> parseWithClauses(String query) {
 
-        /*  (?i)     – turn on case-insensitive matching
-         *  \\bWITH\\b – split exactly on the word WITH
-         */
         String[] sections = query.split("(?i)\\bWITH\\b");
 
         List<WithClause> clauses = new ArrayList<>();
 
-        /*  Inside the WITH-part we must stop once we reach the next
-         *  keyword (SUCH THAT / AND / SELECT); again all case-insensitive.
-         */
         for (int i = 1; i < sections.length; i++) {
             String[] parts = sections[i]
                     .split("(?i)\\bSUCH\\s+THAT\\b|(?i)\\bAND\\b|(?i)\\bSELECT\\b");
@@ -664,30 +589,6 @@ public class QueryEvaluator {
     }
 
 
-    private List<String> splitPatternArgs(String argsRaw) {
-        List<String> args = new ArrayList<>();
-        int depth = 0;
-        StringBuilder current = new StringBuilder();
-
-        for (int i = 0; i < argsRaw.length(); i++) {
-            char c = argsRaw.charAt(i);
-
-            if (c == ',' && depth == 0) {
-                args.add(current.toString().trim());
-                current.setLength(0);
-            } else {
-                if (c == '(') depth++;
-                else if (c == ')') depth--;
-                current.append(c);
-            }
-        }
-
-        if (!current.isEmpty()) {
-            args.add(current.toString().trim());
-        }
-
-        return args;
-    }
 
 
 
@@ -712,18 +613,15 @@ private List<PatternClause> parsePatternClauses(String query) {
         for (Integer stmt : pkb.getAllStmts()) {
             if (pkb.getEntityType(stmt) != EntityType.ASSIGN) continue;
             TNode rhs = pkb.getAssignRhsTree(stmt);
-            // filtr po LHS jeśli jest nie-wildcard
             if (!"_".equals(pc.arg1)) {
                 String lhs = pc.arg1.replaceAll("\"", "");
                 if (!pkb.getAssignsWithLhs(lhs).contains(stmt)) continue;
             }
             String a2 = pc.arg2;
-            // wildcard dla całego RHS
             if ("_".equals(a2)) {
                 result.add(String.valueOf(stmt));
                 continue;
             }
-            // pod-wzorzec: _"expr"_
             if (a2.startsWith("_\"") && a2.endsWith("\"_")) {
                 String sub = a2.substring(2, a2.length() - 2);
                 TNode pt = ExpressionParser.parse(sub);
@@ -731,7 +629,6 @@ private List<PatternClause> parsePatternClauses(String query) {
                     result.add(String.valueOf(stmt));
                 }
             }
-            // dokładne dopasowanie: "expr"
             else if (a2.startsWith("\"") && a2.endsWith("\"")) {
                 String exact = a2.substring(1, a2.length() - 1);
                 TNode pt = ExpressionParser.parse(exact);
