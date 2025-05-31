@@ -107,18 +107,24 @@ public class DesignExtractor {
             int curr = currentStmtNumber++;
             for (int h : pendingWhileFalse) addNextEdge(h, curr);
             pendingWhileFalse.clear();
+
             pkb.addStmt(curr, stmt.getType());
             if (!parentStack.isEmpty()) pkb.setParent(parentStack.peek(), curr);
+
             if (prev != null) {
                 pkb.setFollows(prev, curr);
-                addNextEdge(prev, curr);
+
+                EntityType prevType = pkb.getEntityType(prev);
+                if (prevType != EntityType.IF && prevType != EntityType.WHILE) {
+                    addNextEdge(prev, curr);
+                }
             }
             prev = curr;
 
-            List<Runnable> hooks = pendingAfterIfEnds.remove(curr - 1);   // ← zostaje
+            List<Runnable> hooks = pendingAfterIfEnds.remove(curr - 1);
             if (hooks != null) hooks.forEach(Runnable::run);
 
-            hooks = pendingAfterLoops.remove(curr - 1);                   // ← zostaje
+            hooks = pendingAfterLoops.remove(curr - 1);
             if (hooks != null) hooks.forEach(Runnable::run);
 
             processStmt(stmt, curr);
@@ -126,7 +132,6 @@ public class DesignExtractor {
         }
 
         if (prev != null) {
-            /* ---- na końcu listy uruchamiamy TYLKO hooki od pętli ---- */
             List<Runnable> loopHooks = pendingAfterLoops.remove(prev);
             if (loopHooks != null) loopHooks.forEach(Runnable::run);
         }
