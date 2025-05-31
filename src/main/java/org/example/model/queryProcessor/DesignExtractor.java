@@ -201,7 +201,6 @@ private void processWhile(TNode whileNode, int whileNr) {
 }
 
 
-
     private boolean lastTillAncestor(TNode node, TNode ancestor) {
         TNode cur = node;
         while (cur != null && cur != ancestor) {
