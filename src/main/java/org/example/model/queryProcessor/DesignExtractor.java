@@ -13,6 +13,7 @@ public class DesignExtractor {
     private final Map<Integer, Set<Integer>> cfg = new HashMap<>();
     private final Map<Integer, List<Runnable>> pendingAfterIfEnds = new HashMap<>();
     private final Map<Integer, List<Runnable>> pendingAfterLoops = new HashMap<>();
+    private final Map<TNode,Integer> nodeToStmt = new HashMap<>();
 
     public DesignExtractor(PKB pkb) {
         this.pkb = pkb;
@@ -109,6 +110,7 @@ public class DesignExtractor {
             pendingWhileFalse.clear();
 
             pkb.addStmt(curr, stmt.getType());
+            nodeToStmt.put(stmt, curr);
             if (!parentStack.isEmpty()) pkb.setParent(parentStack.peek(), curr);
 
             if (prev != null) {
@@ -137,45 +139,76 @@ public class DesignExtractor {
         }
     }
 
-    private void processWhile(TNode whileNode, int whileNr) {
-        TNode cond = whileNode.getFirstChild();
-        collectConstants(cond);
-        Set<String> cv = extractVariablesFromNode(cond);
-        pkb.setWhileControlVars(whileNr, cv);
-        for (String v : cv) {
-            pkb.addVariable(v);
-            pkb.setUsesStmt(whileNr, v);
-            if (currentProcedure != null) pkb.setUsesProc(currentProcedure, v);
-            if (!parentStack.isEmpty()) pkb.propagateUsesToParent(whileNr, v);
+private void processWhile(TNode whileNode, int whileNr) {
+    TNode cond = whileNode.getFirstChild();
+    collectConstants(cond);
+    Set<String> cv = extractVariablesFromNode(cond);
+    pkb.setWhileControlVars(whileNr, cv);
+    for (String v : cv) {
+        pkb.addVariable(v);
+        pkb.setUsesStmt(whileNr, v);
+        if (currentProcedure != null) pkb.setUsesProc(currentProcedure, v);
+        if (!parentStack.isEmpty()) pkb.propagateUsesToParent(whileNr, v);
+    }
+
+    parentStack.push(whileNr);
+    TNode body = cond.getRightSibling();
+
+    int firstInBody = currentStmtNumber;
+    processStmtList(body);
+
+    int lastInBody = currentStmtNumber - 1;              // sekwencyjnie ostatni stmt w pętli
+    int lastTopLevel = -1;                               // ostatni stmt, którego parent == whileNr
+    for (int i = lastInBody; i >= firstInBody; i--) {
+        Integer p = pkb.getParentMap().get(i);
+        if (p != null && p == whileNr) { lastTopLevel = i; break; }
+    }
+    if (lastTopLevel == -1) lastTopLevel = lastInBody;
+
+    parentStack.pop();
+
+    /* gałąź TRUE */
+    addNextEdge(whileNr, firstInBody);      // wejście (TRUE)
+
+    /*   ⇩  tu była bezwarunkowa krawędź powrotna   */
+    EntityType topType = pkb.getEntityType(lastTopLevel);
+    if (topType != EntityType.IF && topType != EntityType.WHILE) {
+        addNextEdge(lastTopLevel, whileNr); // powrót (TRUE) tylko z instrukcji „prostych”
+    }
+
+    /* gałąź FALSE */
+    /* gałąź FALSE */
+/* gałąź FALSE – zawsze rejestrujemy hook do pierwszej
+   kolejnej instrukcji w tej samej procedurze */
+    final int nextNum = currentStmtNumber;          // numer następnego stm-tu
+    pendingAfterLoops
+            .computeIfAbsent(lastInBody, k -> new ArrayList<>())
+            .add(() -> addNextEdge(whileNr, nextNum));
+
+/* dodatkowo: jeśli pętla jest ostatnia aż do najbliższej pętli-przodka,
+   dokładamy krawędź do nagłówka tej pętli */
+    TNode anc = whileNode.getParent();
+    TNode enclosingWhileNode = null;
+    while (anc != null && anc.getType() != EntityType.PROCEDURE) {
+        if (anc.getType() == EntityType.WHILE) { enclosingWhileNode = anc; break; }
+        if (anc.getRightSibling() != null) { enclosingWhileNode = null; break; }
+        anc = anc.getParent();
+    }
+    if (enclosingWhileNode != null && lastTillAncestor(whileNode, enclosingWhileNode)) {
+        Integer enclosingNr = nodeToStmt.get(enclosingWhileNode);
+        if (enclosingNr != null) addNextEdge(whileNr, enclosingNr);
+    }
+}
+
+
+
+    private boolean lastTillAncestor(TNode node, TNode ancestor) {
+        TNode cur = node;
+        while (cur != null && cur != ancestor) {
+            if (cur.getRightSibling() != null) return false;
+            cur = cur.getParent();
         }
-
-        parentStack.push(whileNr);
-        TNode body = cond.getRightSibling();
-        int firstInBody = currentStmtNumber;
-        processStmtList(body);
-        int lastInBody = currentStmtNumber - 1;
-        parentStack.pop();
-
-        addNextEdge(whileNr, firstInBody);      // TRUE-wejście
-        addNextEdge(lastInBody, whileNr);       // TRUE-powrót
-
-        /* ---- FAŁSZ ---- */
-        if (whileNode.getRightSibling() != null) {            // są instrukcje po pętli
-            final int nextNum = currentStmtNumber;            // następny stmt już znany
-            pendingAfterLoops
-                    .computeIfAbsent(lastInBody, k -> new ArrayList<>())
-                    .add(() -> addNextEdge(whileNr, nextNum));
-        } else {                                              // ostatni w stmtList
-            Integer enclosingWhile = null;
-            for (Integer anc : parentStack) {                 // najbliższa zewn. pętla
-                if (pkb.getEntityType(anc) == EntityType.WHILE) { enclosingWhile = anc; break; }
-            }
-            if (enclosingWhile != null) {                     // fałsz → nagłówek tej pętli
-                addNextEdge(whileNr, enclosingWhile);
-            }
-        /* brak hooka: jeśli to koniec bloku IF/PROCEDURE,
-           gałąź FALSE połączy pendingAfterIfEnds lub nic */
-        }
+        return cur == ancestor;
     }
 
     private void processCall(TNode callNode, int stmtNumber) {
@@ -326,22 +359,12 @@ public class DesignExtractor {
     }
 
     private void propagateCallModifies() {
-        for (Integer stmt : pkb.getAllCallStmts()) {
-            String proc = pkb.getCalledProcByStmt(stmt);
-            for (String var : pkb.getModifiedByProc(proc)) {
-                pkb.setModifiesStmt(stmt, var);
-                pkb.propagateModifiesToParent(stmt, var);
-            }
-        }
-
         boolean changed;
         do {
             changed = false;
             for (String caller : pkb.getAllProcedures()) {
-                Set<String> calledProcs = pkb.getCallsStar(caller);
-                for (String callee : calledProcs) {
-                    Set<String> calleeModifies = pkb.getModifiedByProc(callee);
-                    for (String var : calleeModifies) {
+                for (String callee : pkb.getCallsStar(caller)) {
+                    for (String var : pkb.getModifiedByProc(callee)) {
                         if (pkb.setModifiesProc(caller, var)) {
                             changed = true;
                         }
@@ -349,6 +372,13 @@ public class DesignExtractor {
                 }
             }
         } while (changed);
+        for (Integer stmt : pkb.getAllCallStmts()) {
+            String proc = pkb.getCalledProcByStmt(stmt);
+            for (String var : pkb.getModifiedByProc(proc)) {
+                pkb.setModifiesStmt(stmt, var);
+                pkb.propagateModifiesToParent(stmt, var);
+            }
+        }
     }
 
     private void propagateCallUses() {
