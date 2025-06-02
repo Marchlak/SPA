@@ -43,7 +43,7 @@ public class DesignExtractor {
         /* --- KONIEC PROCEDURY → czyścimy zaległe hooki --- */
         pendingAfterIfEnds.clear();
         pendingAfterLoops.clear();
-        pendingWhileFalse.clear();   // <-- klucz do zniknięcia 191→209
+        pendingWhileFalse.clear();
 
         parentStack.clear();         // porządek, gdyby coś zostało
         currentProcedure = null;

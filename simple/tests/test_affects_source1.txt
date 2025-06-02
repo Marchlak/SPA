@@ -75,7 +75,7 @@ Select a1 such that Affects* (a1, 11)
 11
 assign a1;
 Select a1 such that Affects* (a1, 22)
-9, 21
+19, 21
 assign a1;
 Select a1 such that Affects* (a1, 27)
 25
