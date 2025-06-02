@@ -161,10 +161,8 @@ public class QueryEvaluator {
 
         if (relationships.isEmpty() && !pcs.isEmpty()) {
             String syn = pcs.get(0).synonym.toUpperCase();
-            Set<String> dom = pkb.getAllStmts().stream()
-                    .filter(s -> pkb.getEntityType(s) == EntityType.ASSIGN)
-                    .map(String::valueOf)
-                    .collect(Collectors.toSet());
+            SynonymType type = getSynType(syn);
+            Set<String> dom = domain(type);
             tuples.clear();
             for (String v : dom) {
                 Map<String, String> m = new HashMap<>();
