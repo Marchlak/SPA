@@ -59,6 +59,16 @@ public class PKB {
 
     public void addConstant(String value){ constants.add(value); }
 
+
+    public boolean containsSubtree(TNode root, TNode pattern) {
+        if (root == null || pattern == null) return false;
+        if (treesEqual(root, pattern)) return true;
+        for (TNode child = root.getFirstChild(); child != null; child = child.getRightSibling()) {
+            if (containsSubtree(child, pattern)) return true;
+        }
+        return false;
+    }
+
 public Set<String> getAllConstants() { return new HashSet<>(constants); }
     public void setAssignLhs(int stmt, String var) {
         assignLhsToStmts.computeIfAbsent(var, k -> new HashSet<>()).add(stmt);
