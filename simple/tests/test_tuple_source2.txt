@@ -1,0 +1,30 @@
+stmt s; if ifstmt;
+Select <s,ifstmt> such that Modifies(s, "o") and Follows*(ifstmt, s)
+none
+while w; variable v;
+Select <w,v> such that Modifies(w, v) with v.varName = "c"
+105 c, 113 c, 12 c, 6 c
+stmt s; while w;
+Select <w,s> such that Parent* (s, 12)
+6 6, 12 6, 16 6, 26 6, 29 6, 47 6, 59 6, 69 6, 79 6, 83 6, 89 6, 95 6, 101 6, 103 6, 105 6, 113 6, 136 6, 143 6, 180 6, 181 6, 184 6, 187 6, 191 6, 196 6, 209 6, 217 6, 218 6, 234 6, 239 6, 251 6, 256 6, 264 6, 265 6, 279 6, 281 6, 289 6, 301 6
+assign a; while w;
+Select a such that Modifies (a, "x1") and Parent (w, a)
+7, 138, 182, 252
+assign a; while w; variable v;
+Select <w,a,v> such that Modifies (a, v) and Parent (w, a) with v.varName = "x1"
+6 7 x1, 136 138 x1, 181 182 x1, 251 252 x1
+procedure p;
+Select p such that Calls ("Main", p) and Modifies (p, "x1") and Uses (p, "x2")
+Transform, Shear, Move, Shrink
+procedure p,p1; variable v,v1;
+Select <p1,p,v,v1> such that Calls (p1, p) with p1.procname = "Main" and Modifies (p, v) with v.varName = "x1" and Uses (p, v1) with v1.varName = "x2"
+Main Transform x1 x2, Main Shear x1 x2, Main Move x1 x2, Main Shrink x1 x2
+stmt s; procedure p;
+Select <s,p> such that Calls ("Main", p) and Uses (s, "b")
+none
+stmt s; procedure p;
+Select <s,p> such that Follows (2, s) and Calls ("Main", p)
+3 Draw, 3 Enlarge, 3 Init, 3 Move, 3 Random, 3 Shear, 3 Shift, 3 Shrink, 3 Transform, 3 Translate
+stmt s,s1; variable v;
+Select <s1,s,v> such that Next (s1, s) with s1.stmt# = 3 and Modifies (s, v) with v.varName = "tmp"
+3 4 tmp
