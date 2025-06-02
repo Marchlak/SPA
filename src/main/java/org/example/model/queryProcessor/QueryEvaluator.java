@@ -68,6 +68,16 @@ public class QueryEvaluator {
     }
 
     private List<Map<String, String>> joinTuples(List<Map<String, String>> leftTuples, Set<Pair<String, String>> rightPairs, String synA, String synB) {
+        if ("_".equals(synA) && "_".equals(synB)) {
+            if (rightPairs.isEmpty()) {
+                return Collections.emptyList();
+            }
+            if (leftTuples.isEmpty()) {
+                return Collections.singletonList(new HashMap<>());
+            }
+            return new ArrayList<>(leftTuples);
+        }
+
         boolean sameSyn = synA.equalsIgnoreCase(synB);
         List<Map<String, String>> out = new ArrayList<>();
         for (Map<String, String> row : leftTuples) {
@@ -266,6 +276,16 @@ public class QueryEvaluator {
         String left = rel.getFirstArg();
         String right = rel.getSecondArg();
         Map<String, Set<String>> relations = getRawRelation(rel.getType());
+
+        if ("_".equals(left) && "_".equals(right)) {
+            Set<Pair<String, String>> allPairs = new HashSet<>();
+            for (Map.Entry<String, Set<String>> entry : relations.entrySet()) {
+                for (String value : entry.getValue()) {
+                    allPairs.add(new Pair<>(entry.getKey(), value));
+                }
+            }
+            return allPairs;
+        }
         Set<String> keys = new HashSet<>(relations.keySet());
         if (synonymsContain(left, synonyms)) filterByColumnType(left, keys);
         else if (!"_".equals(left)) keys.retainAll(Set.of(left.replace("\"", "")));
