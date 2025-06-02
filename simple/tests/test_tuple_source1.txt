@@ -1,0 +1,30 @@
+stmt s; while w;
+Select <s,w> such that Follows(w, s)
+13 10, 22 18, 27 23
+stmt s; while w;
+Select <w,s> such that Follows(w, s)
+10 13, 18 22, 23 27
+assign a; if ifstat;
+Select <a,ifstat> such that Follows(a, ifstat)
+7 8
+stmt s1, s2;
+Select <s1,s2> such that Follows* (s1, s2) with s2.stmt# = 8
+1 8, 2 8, 3 8, 4 8, 5 8, 6 8, 7 8
+while w; assign a;
+Select <w,a> such that Parent (w, a) and Modifies (a, "t")
+18 19
+stmt s1, s2; if ifstat;
+Select <s1,s2,ifstat> such that Follows(s1, s2) with s2.stmt# = 13 such that Parent(ifstat,s1) with ifstat.stmt# = 8
+10 13 8
+procedure p1,p2;
+Select <p1,p2> such that Calls* (p1, p2) with p2.procName ="Hexagon" such that Modifies(p1, "t")
+Circle Hexagon
+stmt s; while w; prog_line n;
+Select <w,s> such that Parent* (s, n)
+10 10, 10 18, 10 23, 10 24, 10 8, 18 10, 18 18, 18 23, 18 24, 18 8, 23 10, 23 18, 23 23, 23 24, 23 8
+stmt s; constant co;
+Select <s,co> with s.stmt# = co.value
+1 1, 10 10, 2 2, 20 20, 3 3
+if ifstat; prog_line n;
+Select <ifstat,n> such that Follows* (ifstat, n)
+8 17
