@@ -40,12 +40,12 @@ public class DesignExtractor {
         TNode stmtList = procNode.getFirstChild();
         processStmtList(stmtList);
 
-        /* --- KONIEC PROCEDURY → czyścimy zaległe hooki --- */
+
         pendingAfterIfEnds.clear();
         pendingAfterLoops.clear();
         pendingWhileFalse.clear();
 
-        parentStack.clear();         // porządek, gdyby coś zostało
+        parentStack.clear();
         currentProcedure = null;
     }
 
@@ -116,7 +116,6 @@ public class DesignExtractor {
             pkb.propagateModifiesToParent(stmtNumber, varName);
         }
 
-        // Handle Uses (right side)
         TNode exprNode = varNode.getRightSibling();
         pkb.setAssignRhsTree(stmtNumber, exprNode);
         collectConstants(exprNode);
@@ -175,65 +174,57 @@ public class DesignExtractor {
         }
     }
 
-private void processWhile(TNode whileNode, int whileNr) {
-    TNode cond = whileNode.getFirstChild();
-    collectConstants(cond);
-    Set<String> cv = extractVariablesFromNode(cond);
-    pkb.setWhileControlVars(whileNr, cv);
-    for (String v : cv) {
-        pkb.addVariable(v);
-        pkb.setUsesStmt(whileNr, v);
-        if (currentProcedure != null) pkb.setUsesProc(currentProcedure, v);
-        if (!parentStack.isEmpty()) pkb.propagateUsesToParent(whileNr, v);
+    private void processWhile(TNode whileNode, int whileNr) {
+        TNode cond = whileNode.getFirstChild();
+        collectConstants(cond);
+        Set<String> cv = extractVariablesFromNode(cond);
+        pkb.setWhileControlVars(whileNr, cv);
+        for (String v : cv) {
+            pkb.addVariable(v);
+            pkb.setUsesStmt(whileNr, v);
+            if (currentProcedure != null) pkb.setUsesProc(currentProcedure, v);
+            if (!parentStack.isEmpty()) pkb.propagateUsesToParent(whileNr, v);
+        }
+
+        parentStack.push(whileNr);
+        TNode body = cond.getRightSibling();
+
+        int firstInBody = currentStmtNumber;
+        processStmtList(body);
+
+        int lastInBody = currentStmtNumber - 1;
+        int lastTopLevel = -1;
+        for (int i = lastInBody; i >= firstInBody; i--) {
+            Integer p = pkb.getParentMap().get(i);
+            if (p != null && p == whileNr) { lastTopLevel = i; break; }
+        }
+        if (lastTopLevel == -1) lastTopLevel = lastInBody;
+
+        parentStack.pop();
+
+        addNextEdge(whileNr, firstInBody);
+
+        EntityType topType = pkb.getEntityType(lastTopLevel);
+        if (topType != EntityType.IF && topType != EntityType.WHILE) {
+            addNextEdge(lastTopLevel, whileNr);
+        }
+
+        final int nextNum = currentStmtNumber;
+        pendingAfterLoops.computeIfAbsent(lastInBody, k -> new ArrayList<>())
+                .add(() -> { if (nextNum < currentStmtNumber) addNextEdge(whileNr, nextNum); });
+
+        TNode anc = whileNode.getParent();
+        TNode enclosingWhileNode = null;
+        while (anc != null && anc.getType() != EntityType.PROCEDURE) {
+            if (anc.getType() == EntityType.WHILE) { enclosingWhileNode = anc; break; }
+            if (anc.getRightSibling() != null) { enclosingWhileNode = null; break; }
+            anc = anc.getParent();
+        }
+        if (enclosingWhileNode != null && lastTillAncestor(whileNode, enclosingWhileNode)) {
+            Integer enclosingNr = nodeToStmt.get(enclosingWhileNode);
+            if (enclosingNr != null) addNextEdge(whileNr, enclosingNr);
+        }
     }
-
-    parentStack.push(whileNr);
-    TNode body = cond.getRightSibling();
-
-    int firstInBody = currentStmtNumber;
-    processStmtList(body);
-
-    int lastInBody = currentStmtNumber - 1;              // sekwencyjnie ostatni stmt w pętli
-    int lastTopLevel = -1;                               // ostatni stmt, którego parent == whileNr
-    for (int i = lastInBody; i >= firstInBody; i--) {
-        Integer p = pkb.getParentMap().get(i);
-        if (p != null && p == whileNr) { lastTopLevel = i; break; }
-    }
-    if (lastTopLevel == -1) lastTopLevel = lastInBody;
-
-    parentStack.pop();
-
-    /* gałąź TRUE */
-    addNextEdge(whileNr, firstInBody);      // wejście (TRUE)
-
-    /*   ⇩  tu była bezwarunkowa krawędź powrotna   */
-    EntityType topType = pkb.getEntityType(lastTopLevel);
-    if (topType != EntityType.IF && topType != EntityType.WHILE) {
-        addNextEdge(lastTopLevel, whileNr); // powrót (TRUE) tylko z instrukcji „prostych”
-    }
-
-    /* gałąź FALSE */
-/* gałąź FALSE – zawsze rejestrujemy hook do pierwszej
-   kolejnej instrukcji w tej samej procedurze */
-    final int nextNum = currentStmtNumber;          // numer następnego stm-tu
-    pendingAfterLoops
-            .computeIfAbsent(lastInBody, k -> new ArrayList<>())
-            .add(() -> addNextEdge(whileNr, nextNum));
-
-/* dodatkowo: jeśli pętla jest ostatnia aż do najbliższej pętli-przodka,
-   dokładamy krawędź do nagłówka tej pętli */
-    TNode anc = whileNode.getParent();
-    TNode enclosingWhileNode = null;
-    while (anc != null && anc.getType() != EntityType.PROCEDURE) {
-        if (anc.getType() == EntityType.WHILE) { enclosingWhileNode = anc; break; }
-        if (anc.getRightSibling() != null) { enclosingWhileNode = null; break; }
-        anc = anc.getParent();
-    }
-    if (enclosingWhileNode != null && lastTillAncestor(whileNode, enclosingWhileNode)) {
-        Integer enclosingNr = nodeToStmt.get(enclosingWhileNode);
-        if (enclosingNr != null) addNextEdge(whileNr, enclosingNr);
-    }
-}
 
 
     private boolean lastTillAncestor(TNode node, TNode ancestor) {
