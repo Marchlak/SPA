@@ -13,8 +13,8 @@ public class DesignExtractor {
     private String currentProcedure;
     private final Map<Integer, Set<Integer>> cfg = new HashMap<>();
     private final Map<Integer, List<Runnable>> pendingAfterIfEnds = new HashMap<>();
-    private final Map<Integer, List<Runnable>> pendingAfterLoops = new HashMap<>();
     private final Map<TNode,Integer> nodeToStmt = new HashMap<>();
+    private final Deque<List<Integer>> whileFalseStack = new ArrayDeque<>();
 
     public DesignExtractor(PKB pkb) {
         this.pkb = pkb;
@@ -36,20 +36,13 @@ public class DesignExtractor {
     private void processProcedure(TNode procNode) {
         currentProcedure = procNode.getAttr().replace("\"", "");
         pkb.addProcedure(currentProcedure);
-
+        whileFalseStack.clear();
         TNode stmtList = procNode.getFirstChild();
         processStmtList(stmtList);
-
-
         pendingAfterIfEnds.clear();
-        pendingAfterLoops.clear();
-        pendingWhileFalse.clear();
-
         parentStack.clear();
         currentProcedure = null;
     }
-
-
 
     private void extractAffectsRelations() {
         for (String proc : pkb.getAllProcedures()) {
@@ -66,40 +59,26 @@ public class DesignExtractor {
                 while (!dq.isEmpty()) {
                     int cur = dq.pop();
                     if (!seen.add(cur)) continue;
-
                     if (pkb.getUsedByStmt(cur).contains(v) &&
                             pkb.getEntityType(cur) == EntityType.ASSIGN)
                         pkb.addAffects(a1, cur);
-
                     EntityType et = pkb.getEntityType(cur);
                     boolean redefines = (et == EntityType.ASSIGN || et == EntityType.CALL)
                             && pkb.getModifiedByStmt(cur).contains(v);
                     if (redefines) continue;
-
                     dq.addAll(pkb.getNext(cur));
                 }
             }
         }
     }
 
-
-
     private void processStmt(TNode stmt, int stmtNumber) {
         switch (stmt.getType()) {
-            case ASSIGN:
-                processAssign(stmt, stmtNumber);
-                break;
-            case WHILE:
-                processWhile(stmt, stmtNumber);
-                break;
-            case CALL:
-                processCall(stmt, stmtNumber);
-                break;
-            case IF:
-                processIf(stmt, stmtNumber);
-                break;
-            default:
-                throw new IllegalArgumentException("Unexpected node type: " + stmt.getType());
+            case ASSIGN -> processAssign(stmt, stmtNumber);
+            case WHILE -> processWhile(stmt, stmtNumber);
+            case CALL -> processCall(stmt, stmtNumber);
+            case IF -> processIf(stmt, stmtNumber);
+            default -> throw new IllegalArgumentException("Unexpected node type: " + stmt.getType());
         }
     }
 
@@ -115,7 +94,6 @@ public class DesignExtractor {
         if (!parentStack.isEmpty()) {
             pkb.propagateModifiesToParent(stmtNumber, varName);
         }
-
         TNode exprNode = varNode.getRightSibling();
         pkb.setAssignRhsTree(stmtNumber, exprNode);
         collectConstants(exprNode);
@@ -132,45 +110,40 @@ public class DesignExtractor {
         }
     }
 
-
-    private final List<Integer> pendingWhileFalse = new ArrayList<>();
-
     private void processStmtList(TNode stmtListNode) {
+        whileFalseStack.push(new ArrayList<>());
         TNode stmt = stmtListNode.getFirstChild();
         Integer prev = null;
         while (stmt != null) {
             int curr = currentStmtNumber++;
-            for (int h : pendingWhileFalse) addNextEdge(h, curr);
-            pendingWhileFalse.clear();
-
+            List<Integer> localPending = whileFalseStack.peek();
+            if (!localPending.isEmpty()) {
+                for (int h : localPending) addNextEdge(h, curr);
+                localPending.clear();
+            }
             pkb.addStmt(curr, stmt.getType());
             pkb.setStmtProcedure(curr, currentProcedure);
             nodeToStmt.put(stmt, curr);
             if (!parentStack.isEmpty()) pkb.setParent(parentStack.peek(), curr);
-
             if (prev != null) {
                 pkb.setFollows(prev, curr);
-
                 EntityType prevType = pkb.getEntityType(prev);
                 if (prevType != EntityType.IF && prevType != EntityType.WHILE) {
                     addNextEdge(prev, curr);
                 }
             }
-            prev = curr;
-
             List<Runnable> hooks = pendingAfterIfEnds.remove(curr - 1);
             if (hooks != null) hooks.forEach(Runnable::run);
-
-            hooks = pendingAfterLoops.remove(curr - 1);
-            if (hooks != null) hooks.forEach(Runnable::run);
-
             processStmt(stmt, curr);
+            if (pkb.getEntityType(curr) == EntityType.WHILE) {
+                whileFalseStack.peek().add(curr);
+            }
+            prev = curr;
             stmt = stmt.getRightSibling();
         }
-
-        if (prev != null) {
-            List<Runnable> loopHooks = pendingAfterLoops.remove(prev);
-            if (loopHooks != null) loopHooks.forEach(Runnable::run);
+        List<Integer> leftovers = whileFalseStack.pop();
+        if (!whileFalseStack.isEmpty() && !leftovers.isEmpty()) {
+            whileFalseStack.peek().addAll(leftovers);
         }
     }
 
@@ -185,13 +158,10 @@ public class DesignExtractor {
             if (currentProcedure != null) pkb.setUsesProc(currentProcedure, v);
             if (!parentStack.isEmpty()) pkb.propagateUsesToParent(whileNr, v);
         }
-
         parentStack.push(whileNr);
         TNode body = cond.getRightSibling();
-
         int firstInBody = currentStmtNumber;
         processStmtList(body);
-
         int lastInBody = currentStmtNumber - 1;
         int lastTopLevel = -1;
         for (int i = lastInBody; i >= firstInBody; i--) {
@@ -199,20 +169,12 @@ public class DesignExtractor {
             if (p != null && p == whileNr) { lastTopLevel = i; break; }
         }
         if (lastTopLevel == -1) lastTopLevel = lastInBody;
-
         parentStack.pop();
-
         addNextEdge(whileNr, firstInBody);
-
         EntityType topType = pkb.getEntityType(lastTopLevel);
         if (topType != EntityType.IF && topType != EntityType.WHILE) {
             addNextEdge(lastTopLevel, whileNr);
         }
-
-        final int nextNum = currentStmtNumber;
-        pendingAfterLoops.computeIfAbsent(lastInBody, k -> new ArrayList<>())
-                .add(() -> { if (nextNum < currentStmtNumber) addNextEdge(whileNr, nextNum); });
-
         TNode anc = whileNode.getParent();
         TNode enclosingWhileNode = null;
         while (anc != null && anc.getType() != EntityType.PROCEDURE) {
@@ -226,7 +188,6 @@ public class DesignExtractor {
         }
     }
 
-
     private boolean lastTillAncestor(TNode node, TNode ancestor) {
         TNode cur = node;
         while (cur != null && cur != ancestor) {
@@ -239,17 +200,13 @@ public class DesignExtractor {
     private void processCall(TNode callNode, int stmtNumber) {
         TNode procNameNode = callNode.getFirstChild();
         String calledProc = procNameNode.getAttr().replace("\"", "");
-
         if (currentProcedure != null) {
             pkb.setCalls(currentProcedure, calledProc);
         }
-
         pkb.setCallStmt(stmtNumber, calledProc);
-
         if (!pkb.getCallsMap().containsKey(calledProc)) {
             pkb.addProcedure(calledProc);
         }
-
         Set<String> modifies = pkb.getModifiedByProc(calledProc);
         modifies.forEach(var -> {
             pkb.setModifiesProc(currentProcedure, var);
@@ -258,7 +215,6 @@ public class DesignExtractor {
                 pkb.propagateModifiesToParent(stmtNumber, var);
             }
         });
-
         Set<String> uses = pkb.getUsedByProc(calledProc);
         uses.forEach(var -> {
             pkb.setUsesProc(currentProcedure, var);
@@ -292,7 +248,7 @@ public class DesignExtractor {
     private void processIf(TNode ifNode, int ifStmtNr) {
         TNode cond = ifNode.getFirstChild();
         collectConstants(cond);
-        Set<String> cv = extractVariablesFromCond(cond);
+        Set<String> cv = extractVariablesFromExpr(cond);
         pkb.setIfControlVars(ifStmtNr, cv);
         for (String v : cv) {
             pkb.addVariable(v);
@@ -300,24 +256,18 @@ public class DesignExtractor {
             if (currentProcedure != null) pkb.setUsesProc(currentProcedure, v);
             if (!parentStack.isEmpty()) pkb.propagateUsesToParent(ifStmtNr, v);
         }
-
         parentStack.push(ifStmtNr);
         TNode thenList = cond.getRightSibling();
         TNode elseList = thenList.getRightSibling();
-
         int thenStart = currentStmtNumber;
         processStmtList(thenList);
         int thenEnd = currentStmtNumber - 1;
-
         int elseStart = currentStmtNumber;
         processStmtList(elseList);
         int elseEnd = currentStmtNumber - 1;
-
         parentStack.pop();
-
         addNextEdge(ifStmtNr, thenStart);
         addNextEdge(ifStmtNr, elseStart);
-
         if (hasNextStmtSibling(ifNode)) {
             final int nextNum = currentStmtNumber;
             pendingAfterIfEnds
@@ -343,20 +293,13 @@ public class DesignExtractor {
 
     private Set<String> extractVariablesFromNode(TNode node) {
         Set<String> variables = new HashSet<>();
-        if (node == null) {
-            return variables;
-        }
-
-        if (node.getType() == EntityType.VARIABLE) {
-            variables.add(node.getAttr());
-        }
-
+        if (node == null) return variables;
+        if (node.getType() == EntityType.VARIABLE) variables.add(node.getAttr());
         TNode child = node.getFirstChild();
         while (child != null) {
             variables.addAll(extractVariablesFromNode(child));
             child = child.getRightSibling();
         }
-
         return variables;
     }
 
@@ -364,12 +307,9 @@ public class DesignExtractor {
         Set<String> variables = new HashSet<>();
         Deque<TNode> stack = new ArrayDeque<>();
         stack.push(exprNode);
-
         while (!stack.isEmpty()) {
             TNode current = stack.pop();
-            if (current.getType() == EntityType.VARIABLE) {
-                variables.add(current.getAttr());
-            }
+            if (current.getType() == EntityType.VARIABLE) variables.add(current.getAttr());
             TNode child = current.getRightSibling();
             while (child != null) {
                 stack.push(child);
@@ -379,10 +319,6 @@ public class DesignExtractor {
         return variables;
     }
 
-    private Set<String> extractVariablesFromCond(TNode condNode) {
-        return extractVariablesFromExpr(condNode);
-    }
-
     private void propagateCallModifies() {
         boolean changed;
         do {
@@ -390,9 +326,7 @@ public class DesignExtractor {
             for (String caller : pkb.getAllProcedures()) {
                 for (String callee : pkb.getCallsStar(caller)) {
                     for (String var : pkb.getModifiedByProc(callee)) {
-                        if (pkb.setModifiesProc(caller, var)) {
-                            changed = true;
-                        }
+                        if (pkb.setModifiesProc(caller, var)) changed = true;
                     }
                 }
             }
@@ -406,8 +340,6 @@ public class DesignExtractor {
         }
     }
 
-    // DesignExtractor
-
     private void propagateCallUses() {
         boolean changed;
         do {
@@ -415,9 +347,7 @@ public class DesignExtractor {
             for (String caller : pkb.getAllProcedures()) {
                 for (String callee : pkb.getCallsStar(caller)) {
                     for (String var : pkb.getUsedByProc(callee)) {
-                        if (pkb.setUsesProc(caller, var)) {
-                            changed = true;
-                        }
+                        if (pkb.setUsesProc(caller, var)) changed = true;
                     }
                 }
             }
@@ -431,7 +361,6 @@ public class DesignExtractor {
         }
     }
 
-
     private void addNextEdge(int from, int to) {
         pkb.addNext(from, to);
         cfg.computeIfAbsent(from, k -> new HashSet<>()).add(to);
@@ -439,13 +368,8 @@ public class DesignExtractor {
 
     private void collectConstants(TNode n) {
         if (n == null) return;
-
-        if (n.getType() == EntityType.CONSTANT) {
-            pkb.addConstant(n.getAttr());
-        }
-        for (TNode c = n.getFirstChild(); c != null; c = c.getRightSibling()) {
-            collectConstants(c);
-        }
+        if (n.getType() == EntityType.CONSTANT) pkb.addConstant(n.getAttr());
+        for (TNode c = n.getFirstChild(); c != null; c = c.getRightSibling()) collectConstants(c);
     }
 
     private void extractNextRelations() {
